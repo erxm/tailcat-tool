@@ -24,6 +24,23 @@ gradlew.bat :desktop:packageAppImage
 
 产物在 `desktop\build\compose\binaries\main\app\TailcatManager\`，双击其中的 `TailcatManager.exe` 启动。
 
+也可以打成安装包：
+
+```bat
+gradlew.bat :desktop:packageExe
+```
+
+产物在 `desktop\build\compose\binaries\main\exe\TailcatManager-<版本>.exe`。安装包内置了 jlink 运行时，
+**目标机器不需要装 Java**。默认按用户级安装到 `%LOCALAPPDATA%\Programs\TailcatManager`，不需要管理员权限，
+可在向导里改目录，并创建开始菜单项和桌面快捷方式。
+
+打包 exe/msi 需要 **WiX Toolset 3.x**（jpackage 通过 PATH 找 `candle.exe` / `light.exe`）。免安装用法：
+从 [WiX 3 发布页](https://github.com/wixtoolset/wix3/releases) 下载 `wix314-binaries.zip` 解压，
+把解压目录加进 PATH 再跑上面的命令。没有 WiX 时 `packageExe` 会失败，但 `packageAppImage` 不受影响。
+
+⚠️ `nativeDistributions.description` 必须是**纯 ASCII**：它会被写进 MSI，而 WiX 默认按代码页 1252 编码，
+中文或全角符号会让 `light.exe` 直接以 `LGHT0311` 失败（退出码 311）。
+
 项目路径含非 ASCII 字符时，构建输出会被自动改写到
 `%LOCALAPPDATA%\TailcatManager\build\<项目目录名>`：JDK 的 `jlink` 经 `@响应文件` 接收非 ASCII 输出路径
 会报 `directory already exists`（但该目录实际不存在），而 Compose 插件固定用响应文件调 jlink，

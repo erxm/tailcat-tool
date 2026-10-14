@@ -67,20 +67,34 @@ compose.desktop {
         jvmArgs += listOf("-Dskiko.rendering.laf.global=false")
 
         nativeDistributions {
-            targetFormats(TargetFormat.AppImage)
+            // AppImage 是免安装的绿色目录；Exe 是安装包，**需要 WiX 3.x**（见 README）。
+            targetFormats(TargetFormat.AppImage, TargetFormat.Exe)
             packageName = "TailcatManager"
             packageVersion = "1.0.0"
-            description = "Tailcat → ADB 会话管理器"
+            // 必须是纯 ASCII：这个值会被 jpackage 写进 MSI，而 WiX 默认按代码页 1252 编码，
+            // 中文或全角符号会让 light.exe 直接以 LGHT0311 失败（退出码 311）。
+            description = "Tailcat to ADB session manager"
             vendor = "coauto.cc"
             // 注意：不要加 --win-console，否则启动器会变成控制台子系统并弹窗。
             // jdk.unsupported 是 JNA 需要的（它用了 sun.misc.Unsafe）。
             modules("java.base", "java.desktop", "java.logging", "jdk.crypto.ec", "jdk.unsupported")
 
-            // exe 的图标（任务栏、开始菜单、桌面快捷方式都取它）。
-            // 不指定的话 jpackage 会塞一个自带的黑白默认图标，跟运行时自己画的窗口/托盘图标对不上。
-            // 图形与 AppIcons.draw() 一致；改了图形要重新生成：java desktop/icons/GenerateIcon.java
+            // exe/msi 安装包的升级标识。**必须固定不变**：换了值，新版会被当成另一个应用装成两份。
+            // 只在 exe / msi 这两种 targetFormats 下用到。
             windows {
+                // exe 的图标（任务栏、开始菜单、桌面快捷方式都取它）。
+                // 不指定的话 jpackage 会塞一个自带的黑白默认图标，跟运行时的窗口/托盘图标对不上。
+                // 图形与 src/main/resources/icons/app-icon.png 一致；
+                // 换了原图重跑：java desktop/icons/GenerateIcon.java
                 iconFile.set(project.file("icons/TailcatManager.ico"))
+
+                // 装到 %LOCALAPPDATA%\Programs，不需要管理员权限——虚拟机里测试最省事。
+                perUserInstall = true
+                dirChooser = true
+                shortcut = true
+                menu = true
+                menuGroup = "Tailcat Manager"
+                upgradeUuid = "470F5296-AE6E-4E07-A4DC-D2DB587CC175"
             }
         }
     }
