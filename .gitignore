@@ -1,41 +1,16 @@
-# Build outputs and local editor state
-.build/
-.swiftpm/
+.gradle/
+build/
 dist/
-.DS_Store
-*.xcuserstate
+local.properties
+.kotlin/
 
-# Local connection state and credentials
-.env
-.env.*
-configuration.json
-*credentials*.json
-*secrets*.json
-.local/
-.state/
-.config/
-.ssh/
-tailcat-adb/
-tailcat/
-users/
-bridges/
-*.pid
+# IDE
+.idea/
+*.iml
+.vscode/
+
+# 本机运行期数据（绝不入库）
 *.log
 
-# Private keys, exported certificates and signing material
-id_rsa
-id_ed25519
-id_ecdsa
-id_dsa
-*.key
-*.pem
-*.p8
-*.p12
-*.pfx
-*.pub
-*.keystore
-*.jks
-*.keychain
-*.keychain-db
-keychain-password
-*.mobileprovision
+# 官方直链下载的工具会解压到这里，不入库
+tools/

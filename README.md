@@ -1,109 +1,155 @@
-# Tailcat Manager for macOS
+# Tailcat Manager for Windows
 
-SwiftUI 设备侧栏应用，管理多个独立 Tailcat → ADB 会话。第一版面向本机使用，macOS 13 及以上；当前构建目标为 Apple Silicon。
+Compose Desktop 设备侧栏应用，管理多个独立 Tailcat → ADB 会话。由 macOS 版（SwiftUI）移植而来，
+共享逻辑收在 Kotlin Multiplatform 的 `core` 模块里。面向 Windows 10 及以上 64 位系统。
 
-下载最新版：[GitHub Releases](https://github.com/suyunkai/tailcat-tool/releases/latest)。发行 ZIP 仅包含应用包；`SHA256SUMS` 用于核对下载文件。Tailcat、ADB 和 scrcpy 由本机工具或 Homebrew 提供。
+发行形态是 `app-image` 目录，不是安装包；本机没有 WiX，也没有代码签名，首次运行会出现
+SmartScreen「未知发布者」提示。Tailcat、ADB 和 scrcpy 由本机工具、winget 或应用内的官方直链下载提供。
 
-项目源码采用 [MIT License](LICENSE)。官方 Tailcat 猫图参考及衍生应用图标保留上游 BSD 3-Clause 许可，详见 [第三方素材声明](THIRD_PARTY_NOTICES.md)。
+macOS 版见 [上游仓库](https://github.com/suyunkai/tailcat-tool)。
+
+项目源码采用 [MIT License](LICENSE)。应用图标沿用 macOS 版的同一张原图（由官方 Tailcat 猫图衍生），
+该素材保留上游 BSD 3-Clause 许可，不属于本项目的 MIT 授权范围；本项目是独立 GUI 项目，上游名称
+未被用于声称获得 Tailscale 或其贡献者的认可。详见[第三方声明](THIRD_PARTY_NOTICES.md)。
 
 ## 构建和启动
 
-需要 macOS Command Line Tools（Swift 5.9+）或 Xcode，以及支持 `forward`、`parse` 的 Tailcat。已验证本机 Tailcat v0.7.0。
+需要 JDK 21 或以上（打包环节要**完整的 JDK**——Android Studio 自带的 JBR 是精简运行时，没有
+`jpackage.exe`，只有编译用的工具链能从它取）。已验证 Kotlin 2.4.21 + Compose Multiplatform 1.12.1
++ Gradle 9.5.1。
 
-```sh
-bash scripts/build-app.sh
-open "dist/Tailcat Manager.app"
+```bat
+gradlew.bat :desktop:packageAppImage
 ```
 
-脚本同时生成 `dist/Tailcat-Manager-<版本>.zip`，其中只包含已签名的应用包。
+产物在 `desktop\build\compose\binaries\main\app\TailcatManager\`，双击其中的 `TailcatManager.exe` 启动。
+
+项目路径含非 ASCII 字符时，构建输出会被自动改写到
+`%LOCALAPPDATA%\TailcatManager\build\<项目目录名>`：JDK 的 `jlink` 经 `@响应文件` 接收非 ASCII 输出路径
+会报 `directory already exists`（但该目录实际不存在），而 Compose 插件固定用响应文件调 jlink，
+从 Gradle 侧绕不开。把项目放到纯 ASCII 路径即可根治。
+
+`gradle.properties` 里有两处依赖本机 JDK 位置，换机器要改：`org.gradle.java.installations.paths`
+（交给 `jvmToolchain(21)` 的那个 JDK）和 `tailcat.packaging.javaHome`（带 `jpackage.exe` 的那个 JDK）。
 
 也可以开发运行：
 
-```sh
-swift run TailcatManager
+```bat
+gradlew.bat :desktop:run
+gradlew.bat :desktop:run --args="--demo"
 ```
 
-应用从 Homebrew、`~/.local/bin`、Android SDK 和 PATH 检测工具。“工具设置”可指定 Tailcat、ADB、scrcpy 可执行文件和地址簿目录。ADB 必需；scrcpy 仅用于屏幕控制。
+演示模式使用内存配置和模拟命令，不读取真实地址簿、不写凭据，也不执行真实设备操作。
 
-缺失组件可以点侧栏或工具设置中的“安装”，也可点“安装缺失组件”依次安装全部缺失工具。使用 Homebrew 官方命令：[Tailcat](https://formulae.brew.sh/formula/tailcat) 为 `brew install tailcat`，[ADB](https://formulae.brew.sh/cask/android-platform-tools) 为 `brew install --cask android-platform-tools`，[scrcpy](https://formulae.brew.sh/formula/scrcpy) 为 `brew install scrcpy`。界面显示进度和日志，支持取消及失败后重试，成功后自动保存路径。已存在的工具直接检测并配置。
+工具从 PATH、winget 链接目录、Android SDK 以及 Scoop / Chocolatey 目录检测。“工具设置”可指定 Tailcat、
+ADB、scrcpy 可执行文件和地址簿目录。ADB 必需；scrcpy 仅用于屏幕控制。
 
-安装只在用户点击时运行；该次命令关闭 Homebrew 自动更新、已安装包升级、安装后清理和依赖包检查，避免额外变动。安装缺失工具所必需的依赖仍交由 Homebrew 处理。未检测到 Homebrew 时提供官方安装页面入口，需要先完成 Homebrew 安装。
-
-本地 `.app` 默认使用固定的本机开发签名，不是经过 Developer ID 签名和公证的分发包。首次打包会在 `~/Library/Application Support/TailcatManager/Signing/` 创建专用签名钥匙串，后续打包复用；私钥不进入项目、应用包或 ZIP，不修改系统信任设置，用户的钥匙串搜索列表会保持原样。也可用环境变量 `TAILCAT_SIGNING_IDENTITY` 指定现有签名身份。请保留签名目录，重新生成身份会使已有授权失效。
-
-打包时发现目标应用正在运行，会将新版放到 `dist/<版本>/Tailcat Manager.app`，保留当前实例的连接；退出旧版后再打开新包。没有打包现有连接地址、用户私钥或外部工具二进制。
+缺失组件优先用 winget 用户级静默安装（`Tailscale.tailcat`、`Genymobile.scrcpy`），不需要管理员权限；
+未检测到 winget 或安装失败时，自动改为从官方地址直接下载并解压到应用目录，因此新机器不必先装包管理器。
+安装完成后自动重新扫描目录并保存路径。
 
 ## 使用
 
-- 首次启动时，如果应用还没有设备，会导入现有 `tailcat-adb/users/` 地址簿。之后可点工具栏“导入地址簿”，只添加缺失用户，保留 GUI 内的编辑。
-- 工具栏“测试全部设备”可一键测试我的设备和临时设备的 Tailcat ping，显示每台的响应、延迟、直连或 DERP 中继路径、已有 ADB 状态和测试时间。每台 ping 5 秒超时，外层最多 8 秒，并发最多 3 台；支持取消和重试，不创建转发或执行 ADB connect/disconnect。结果是一次测试的快照：收到 pong 确认 Tailcat 可达；未收到 pong 也可能是服务器版本不支持或新链路建连超时，不能据此断定已有 ADB 离线。ADB 列显示当前已有会话的状态；未连接设备的 ADB 端口、授权和 Shell 权限仍需实际连接后检查。
-- 工具栏闪电按钮、侧栏“新建临时连接”或 `⌘⇧N` 可建立临时设备。只需填写连接地址，名称可选；本地端口默认自动分配。临时设备单独分组，支持多台同时连接以及全部常用 ADB 操作。
-- 临时配置和凭据仅保存在内存中，不写配置文件、Keychain 或 CLI 地址簿。断开后在本次运行中仍可重连；关闭临时设备或退出应用时停止其通道并清除临时配置。需要保留时点“保存到我的设备”，当前 UUID、通道和正在执行的任务保持，凭据从此保存到 Keychain。
-- 默认地址簿位于 `${XDG_STATE_HOME:-~/.local/state}/tailcat-adb`。Finder 启动不一定继承终端的 XDG 环境变量，自定义位置请在设置中指定。
-- 地址簿是只读来源；不改写 `address`、`current-user`、`local-port`、PID 或日志，也不接管现有 CLI 通道。
-- 启动和运行期间约每 3 秒识别已有 CLI 通道，在对应设备下显示“CLI 外部连接”、本地入口、PID、设备型号和 ADB 状态。支持同一设备多个 CLI 端口，并可与该设备的 GUI 通道分别显示。
-- 识别会核对 `bridges/<port>.pid`（兼容旧 `bridge.pid`）、实际 socat 命令、监听 PID/端口、连接地址与 GUI 当前凭据；跳过符号链接、失效 PID、端口不一致及其他进程。识别不会连接、重连、断开或结束 CLI 进程。
-- 已在线的 CLI 外部连接可以使用终端、安装 APK、文件传输、Shell、链路探测和 scrcpy；会自动读取设备信息，也可点“刷新信息”。执行设备操作前再次核对 CLI 的进程、监听和 ADB 状态；入口被替换或设备未授权时拒绝操作。CLI 的重连、断开仍由 CLI 控制。
-- 添加设备后选择“连接”。每台设备有独立进程和 ADB serial，支持同时连接。自动端口从 5556 到 5655 逐个实际绑定，已有监听端口保持；也可为设备指定固定端口。
+- 首次启动时，如果应用还没有设备，会导入现有 `tailcat-adb/users/` 地址簿。之后可点工具栏“导入地址簿”，
+  只添加缺失用户，保留应用内的编辑。地址簿所在目录允许是链接，但其中的 `users` 若是符号链接则拒绝读取。
+- 工具栏“测试全部设备”一键测试我的设备和临时设备的 Tailcat ping，显示每台的响应、延迟、直连或 DERP 中继路径、
+  已有 ADB 状态。每台 ping 5 秒超时，并发最多 3 台；不创建转发、不执行 ADB connect/disconnect。
+  结果是一次测试的快照：未收到 pong 也可能是服务端版本不支持或新链路建连超时，不能据此断定已有 ADB 离线。
+- “临时连接”或 `Ctrl+Shift+N` 建立临时设备，只需填连接地址，名称可选。临时设备单独分组，
+  支持多台同时连接及全部常用 ADB 操作。
+- 临时配置和凭据仅保存在内存中，不写配置文件、不写凭据库。关闭临时设备或退出应用时停止其通道并清除临时配置；
+  需要保留时点“保存到我的设备”，当前 UUID、通道和正在执行的任务保持。
+- 添加设备后选择“连接”。每台设备有独立的 `tailcat forward` 进程和 ADB serial，支持同时连接。
+  本地端口留空则从 5556 起逐个实际绑定探测，已有监听端口保持；也可为设备指定固定端口。
 - 待授权、离线、转发进程退出分别显示。只有 ADB `device` 状态允许安装、文件传输、Shell 和 scrcpy。
 - 所有任务在启动时固定设备、ADB 路径及 serial。切换侧栏不会改变任务目标；重连、断开会先取消该设备正在执行的任务。
-- 支持 APK 覆盖安装、文件/目录上传下载、单条 Shell 命令、系统 Terminal 和独立 scrcpy 窗口。任务输出与取消按钮位于底部。
-- 关闭主窗口后连接继续运行，从菜单栏重新打开；退出应用会停止 GUI 启动的设备任务（包括 CLI 入口上的 GUI 任务）及应用创建的通道，只对应用自建通道的 serial 执行 `adb disconnect`，保留 CLI 通道，不会重启全局 ADB 服务。
-- ADB 离线时最多尝试 6 次恢复，间隔逐步增加；待授权不自动重试。唤醒后重新检测。转发进程退出时由用户点击“重新连接”。
-
-取消会停止本机命令进程，远端已经发生的安装或文件写入不会自动回滚。传输任务、Shell 命令、连接状态都有超时；持续使用的 scrcpy 会话最多运行 24 小时。
+- 支持 APK 覆盖安装、文件或整个目录的上传下载、单条 Shell 命令、独立 `cmd` 窗口和独立 scrcpy 窗口。
+  任务输出与取消按钮位于底部。
+- 关闭主窗口后连接继续运行，从系统托盘重新打开。托盘菜单可逐台连接/断开、关闭临时设备、重新检测连接、
+  断开应用管理的全部连接（没有活动通道时置灰）或退出。**托盘菜单是英文的**——那条路径由 Windows
+  自己绘制原生菜单文字，中文在部分机器上会渲染成方块，所以退回英文；界面其它部分不受影响。
+  设备名是用户自己起的，仍可能是中文。
+- 窗口菜单栏分“文件 / 设备 / 窗口”三组：`Ctrl+N` 添加设备、`Ctrl+Shift+N` 临时连接、`Ctrl+I` 导入地址簿、
+  `Ctrl+T` 测试全部设备、`Ctrl+,` 工具设置、`Ctrl+Shift+M` 显示主窗口、`Ctrl+Q` 退出。
+- 重复启动会唤出已在运行的实例的窗口（含从最小化恢复），不会开启第二个实例。
+- ADB 掉线后前 6 次按指数退避快速重试，用尽后**不放弃**，转为每 30 秒后台重探，接通后自动恢复。
+  待授权不自动重试，那要等设备侧点授权。
+- 取消会停止本机命令进程，远端已经发生的安装或文件写入不会自动回滚。传输任务、Shell 命令、连接状态都有超时；
+  持续使用的 scrcpy 会话最多运行 24 小时。
 
 ## 配置与凭据
 
-设备连接地址仍存入本机登录 Keychain。macOS 对 ad-hoc 和本机证书签名的程序使用每次构建的代码哈希进行额外授权检查，因此只固定 GUI 签名还不足以避免更新后重复授权。
-
-应用第一次启动会校验并安装一个固定版本的凭据助手到 `~/Library/Application Support/TailcatManager/CredentialHelper/v1/`，后续 GUI 更新复用同一文件。助手只接受与自己使用同一签名证书、且身份为 `cc.coauto.tailcat-manager` 的直接父进程；它只操作本应用服务下的 UUID 凭据，通过匿名管道传递数据，地址不进入命令参数或日志。设备凭据不迁出 Keychain。授权后的值仅在本次 GUI 运行的内存中缓存。
-
-首次切换到新版时，旧条目仍可能需要授权一次：输入登录钥匙串密码并点“始终允许”，每个设备条目独立授权。后台 CLI 检测禁止弹窗；需要授权时可主动点侧栏“授权识别 CLI 连接”，或连接该设备。保留固定助手和签名目录，正常更新不重新授权。开发时直接 `swift run TailcatManager` 使用开发进程自己的 Keychain 身份，授权可能与打包应用不同。
-
-名称、端口和工具路径保存在：
+设备连接地址（`tc...`，本身是含预共享密钥的凭据）用 Windows DPAPI 加密后整份存入：
 
 ```text
-~/Library/Application Support/TailcatManager/configuration.json
+%LOCALAPPDATA%\TailcatManager\secrets.dat
 ```
 
-目录权限为 700，配置文件为 600；配置文件不包含连接凭据。日志自动隐藏完整 `tc...` 地址。Tailcat 客户端身份仍按 Tailcat 自身的现有默认配置读取；不会生成、导出或替换用户私钥。
+DPAPI 免提示，因此不需要 macOS 版那套要校验签名的凭据助手子进程，也没有授权对话框和
+“授权识别 CLI 连接”这类按钮。用 `%LOCALAPPDATA%` 而不是会漫游的 `%APPDATA%`：DPAPI 主密钥实际不随
+漫游迁移，跨机解密会失败且报错晦涩。
 
-源码仓库只包含代码、测试、构建脚本和图标资源。本机配置、连接地址簿、Keychain 内容、私钥及证书导出、日志和 `.build` / `dist` 构建输出不上传；`.gitignore` 已排除相应文件与目录。测试中的完整 Tailcat 地址来自官方公开文档示例，其余地址为测试时生成的模拟值。
+名称、端口、工具路径和地址簿目录保存在 `%LOCALAPPDATA%\TailcatManager\configuration.json`，不含连接凭据。
+从官方直链下载的工具解压到 `%LOCALAPPDATA%\TailcatManager\tools\`。日志自动隐藏完整 `tc...` 地址。
+
+默认地址簿目录是 `%USERPROFILE%\.local\state\tailcat-adb`，与 macOS 版的
+`${XDG_STATE_HOME:-~/.local/state}/tailcat-adb` 同形。地址簿是只读来源：不改写其中的文件，也不接管
+其他工具建立的通道。
+
+仓库只包含代码、测试与构建脚本；本机配置、凭据库、下载的工具二进制、日志和构建输出都不入库。
 
 ## 验证
 
-```sh
-swift run TailcatChecks
-swift run TailcatChecks --native-tailcat
-swift run TailcatChecks --native-tailcat --keychain
-bash scripts/check-signing.sh
+```bat
+gradlew.bat check
+gradlew.bat check -Dtailcat.networkTests=true
 ```
 
-验证程序不依赖 XCTest / Swift Testing，适用于只有 Command Line Tools 的机器。覆盖双设备隔离、固定任务目标、待授权、连接取消、重连取消旧任务、异常退出、地址簿只读导入、配置权限、参数传递、双管道输出、进程超时和取消；另外覆盖临时设备不落盘、不访问持久凭据、独立关闭、保存时保留正在执行的任务、保存失败回滚，CLI 多端口识别、入口更换拒绝操作、元数据和 ADB/scrcpy 操作、退出取消 GUI 任务但保留 CLI 通道，以及 Homebrew 命令、批量安装、自动配置、失败和取消。安装行为使用模拟 Homebrew，不改动本机已安装组件。
+注意是 `check` 而不是 `test`：`core` 是 KMP 模块，它的 JVM 测试任务叫 `jvmTest`，不在 `test` 这个任务名下，
+`gradlew test` 只会跑到 `desktop` 的 6 项。
 
-`--native-tailcat` 额外使用已安装 Tailcat 创建两个本地监听端口，验证就绪输出、端口避让和独立退出；使用官方公开示例地址，不拨号到远端，不连接真实车机。该验证不等于实车端到端验收。
+默认运行 30 项（`core` 24 项 + `desktop` 6 项），覆盖双设备隔离、固定任务目标、待授权、连接与重连取消旧任务、
+异常退出、配置拒绝符号链接、参数传递、进程超时和取消、可达性并发上限与输出脱敏、地址簿只读导入与符号链接拒绝、
+唤醒请求一次性。
 
-`--keychain` 使用随机 UUID 的模拟凭据验证 Keychain 的创建、读取、更新和删除，结束后删除测试条目，不读取真实设备凭据。
-
-`check-signing.sh` 使用随机 UUID 的模拟凭据，验证不同 GUI 构建复用固定助手后仍能无弹窗读取；ad-hoc 调用方及同证书但应用身份不同的调用方被拒绝。结束后删除测试条目及临时助手，不读取真实设备凭据。行为检查还覆盖凭据缓存更新、后台无交互读取、批量 ping 的并发上限、超时、取消、结果解析和输出脱敏。
+加上 `-Dtailcat.networkTests=true` 会额外跑三个直链下载测试，真实下载并解压 Tailcat、platform-tools 和 scrcpy
+的官方发布包，需要联网，默认跳过。上游一旦改动发布包的目录结构或资产名它会立刻失败——而那正是
+“新机器一键配环境”这条路唯一的外部依赖。
 
 界面演示：
 
-```sh
-open "dist/Tailcat Manager.app" --args --demo
+```bat
+gradlew.bat :desktop:run --args="--demo"
 ```
-
-演示模式使用内存配置和模拟命令，不读取真实地址簿、不写 Keychain，也不执行真实设备操作。退出已启动的普通实例后，再启动演示模式。
 
 ## 目录
 
-- `Sources/TailcatCore`：配置、地址簿、Keychain、进程与独立会话、任务和 ADB 状态管理。
-- `Sources/TailcatManager`：SwiftUI 侧栏、设备详情、表单、菜单栏和演示环境。
-- `Tests/TailcatCoreTests`：可独立运行的行为验证程序。
-- `scripts/build-app.sh`：Release 构建与本地 `.app` 打包。
-- `resources/AppIcon.png`：图标原图；`scripts/build-icon.sh` 生成包含标准与 Retina 尺寸的 `AppIcon.icns`，随应用包一起签名。
+- `core/`：共享逻辑。配置、凭据、进程、独立会话、任务与 ADB 状态管理、可达性、组件安装。
+- `desktop/`：Windows 端的 Compose Desktop 界面与平台层（DPAPI、JNA 进程、winget、托盘、菜单栏）。
+- `desktop/src/main/resources/icons/app-icon.png`：应用图标原图，与 macOS 版同一张。
+- `desktop/icons/`：由原图生成的 `TailcatManager.ico`（exe 图标），以及生成脚本 `GenerateIcon.java`
+  （只做缩放、不重绘）。换了原图重跑一次 `java desktop/icons/GenerateIcon.java` 即可。
+- `gradle/libs.versions.toml`：版本目录。
+
+图标只有这一份源文件：exe 图标、窗口标题栏图标、托盘图标都来自它，不会出现两套。
+
+`core` 只声明 JVM target，因此桌面端不需要 Android SDK 或 AGP 就能构建。
+
+## 与 macOS 版的差异
+
+- **不再观测 CLI 外部连接**。原实现靠 `/bin/ps` 与 `/usr/sbin/lsof` 识别 macOS/Linux 上以 `socat` 搭建的
+  `tailcat-adb` 桥；Windows 上既没有该 CLI，纯 Java 也拿不到“端口 → PID”归属。侧栏的“CLI 外部 N”计数一并移除。
+- **不做唤醒后重检**（Windows 无对应通知），依赖原有轮询兜底。
+- ADB 服务器沿用共享的 5037 端口，与 Android Studio 看到同一批设备。
+- 菜单栏、终端、目录选择分别是 Windows 菜单栏、`cmd.exe`、Swing 的 `JFileChooser`（AWT 的 `FileDialog`
+  在 Windows 上不能选目录）。
+- 凭据从 Keychain 换成 DPAPI，因此没有签名校验、没有授权弹窗，也没有“授权识别 CLI 连接”这类按钮。
+- 单实例检测改用实例目录下的文件锁；重复启动会唤出已有窗口，而不是静默退出。
+- **托盘菜单用英文**（macOS 版是中文）：系统托盘菜单由 Windows 绘制原生菜单文字，中文在部分机器上
+  渲染成方块，显式指定含 CJK 的字体也没能解决。窗口菜单栏和界面本体是 Skia 绘制的，中文正常。
 
 第一版不包含远端 Tailcat 部署、客户端密钥管理、内嵌视频/终端、云同步或应用内自动更新。
 
-正常退出会清理连接。强制结束应用或应用崩溃后的孤儿进程恢复尚未实现；旧监听会被新实例避让，第一版不会按 PID 文件自动结束不明进程。
+正常退出会断开 GUI 启动的连接并回收 `tailcat` / `adb` / `scrcpy` 子进程；**强制结束或崩溃后留下的孤儿进程
+尚未处理**（彻底解法是把子进程归入一个 `KILL_ON_JOB_CLOSE` 的 Job Object，交给内核回收）。
+旧监听会被新实例避让，不会按 PID 文件自动结束不明进程。

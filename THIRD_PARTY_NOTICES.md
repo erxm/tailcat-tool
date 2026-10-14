@@ -4,10 +4,15 @@ The Tailcat Manager source code is licensed under the MIT License in `LICENSE`.
 
 ## Tailcat artwork
 
-`resources/TailcatOfficialReference.png` reproduces the official Tailcat cat artwork.
-`resources/AppIcon.png` and `resources/AppIcon.icns` were generated and adapted from
-that reference. These artwork resources retain the upstream BSD 3-Clause license
-and attribution below; they are not relicensed under the project's MIT License.
+`desktop/src/main/resources/icons/app-icon.png` is the application icon; it is the same
+image the macOS build ships as `resources/AppIcon.png`. The Windows icon
+`desktop/icons/TailcatManager.ico` is generated from it by
+`desktop/icons/GenerateIcon.java` (resizing only, no redrawing).
+
+`resources/TailcatOfficialReference.png` in the macOS sources reproduces the official
+Tailcat cat artwork, from which the app icon was generated and adapted. These artwork
+resources retain the upstream BSD 3-Clause license and attribution below; they are not
+relicensed under the project's MIT License.
 
 Source: https://github.com/tailscale/tailcat/blob/52fbad323e9d352f1febb623e0975368e9a8cbdd/tailcat.png
 Upstream license: https://github.com/tailscale/tailcat/blob/52fbad323e9d352f1febb623e0975368e9a8cbdd/LICENSE
