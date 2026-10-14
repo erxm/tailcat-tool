@@ -3,8 +3,12 @@
 Compose Desktop 设备侧栏应用，管理多个独立 Tailcat → ADB 会话。由 macOS 版（SwiftUI）移植而来，
 共享逻辑收在 Kotlin Multiplatform 的 `core` 模块里。面向 Windows 10 及以上 64 位系统。
 
-发行形态是 `app-image` 目录，不是安装包；本机没有 WiX，也没有代码签名，首次运行会出现
-SmartScreen「未知发布者」提示。Tailcat、ADB 和 scrcpy 由本机工具、winget 或应用内的官方直链下载提供。
+下载最新版：[Releases](https://github.com/erxm/tailcat-tool/releases/latest)。安装包内置 Java 运行时，
+**目标机器不需要装 Java**；按用户级装到 `%LOCALAPPDATA%\Programs`，不需要管理员权限。
+也可以自己构建免安装的 `app-image` 目录，见下文。
+
+没有代码签名，首次运行会出现 SmartScreen「未知发布者」提示。安装包**不含** Tailcat、ADB 和 scrcpy，
+它们由本机工具、winget 或应用内的官方直链下载提供。
 
 macOS 版见 [上游仓库](https://github.com/suyunkai/tailcat-tool)。
 
