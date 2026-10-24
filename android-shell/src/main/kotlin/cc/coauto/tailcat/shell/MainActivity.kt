@@ -88,6 +88,7 @@ import cc.coauto.tailcat.shell.ui.RowTrailing
 import cc.coauto.tailcat.shell.ui.SectionHeader
 import cc.coauto.tailcat.shell.ui.SettingRow
 import cc.coauto.tailcat.shell.ui.TailcatIcons
+import cc.coauto.tailcat.shell.ui.ExpandingBlock
 
 /** 统一的过渡时长，避免各处动画节奏不一致。 */
 private const val TRANSITION_MS = 320
@@ -333,17 +334,19 @@ internal fun ShellScreen(context: Context) {
             // 日志就在这一行下面展开，和「编辑设备」等展开项保持同一套规矩
             if (showLog) {
                 val lines = if (liveLog.isNotEmpty()) liveLog else TailcatServer.readLog(context)
-                Column(Modifier.fillMaxWidth().padding(Dimens.CardInner)) {
+                ExpandingBlock {
+                    Column(Modifier.fillMaxWidth().padding(Dimens.CardInner)) {
                     if (lines.isEmpty()) {
                         Text("暂无日志", style = styles.footnote1, color = colors.onSurfaceVariantSummary)
                     } else {
-                        lines.takeLast(200).forEach { line ->
-                            Text(
-                                line,
-                                style = styles.footnote2,
-                                fontFamily = FontFamily.Monospace,
-                                color = colors.onSurfaceVariantSummary,
-                            )
+                            lines.takeLast(200).forEach { line ->
+                                Text(
+                                    line,
+                                    style = styles.footnote2,
+                                    fontFamily = FontFamily.Monospace,
+                                    color = colors.onSurfaceVariantSummary,
+                                )
+                            }
                         }
                     }
                 }

@@ -38,6 +38,11 @@ import top.yukonga.miuix.kmp.basic.Switch
 import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.basic.TextButton
 import top.yukonga.miuix.kmp.theme.MiuixTheme
+import androidx.compose.foundation.relocation.BringIntoViewRequester
+import androidx.compose.foundation.relocation.bringIntoViewRequester
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.withFrameNanos
 
 /**
  * 界面组件层。
@@ -183,6 +188,7 @@ public fun SettingRow(
 }
 
 /** 分组标题：小号灰字，左边距与行内文字对齐。 */
+
 @Composable
 public fun SectionHeader(text: String, modifier: Modifier = Modifier) {
     Text(
@@ -259,4 +265,28 @@ public fun StateDot(state: ConnectionState) {
         1f
     }
     Box(Modifier.size(11.dp).alpha(settled).background(target, CircleShape))
+}
+
+/**
+ * 展开块：出现时把自己滚进可视区。
+ *
+ * 分组里的行越排越长（设备详情有四五组），点「编辑设备」或「查看日志」时，
+ * 弹出的内容经常正好落在屏幕下缘以外 —— 看得见开头，剩下要自己往下拖。
+ * 这里在内容进入组合后请求一次 bring-into-view，让页面自己上滑到能看见为止。
+ *
+ * 两个细节：
+ *  - **等一帧再请求**：进入组合的那一帧布局还是展开前的高度，立刻请求会按错误的尺寸计算。
+ *  - 请求失败直接吞掉：小屏 + 高内容时本来就滚不全，不该因此崩掉界面。
+ */
+@Composable
+public fun ExpandingBlock(
+    modifier: Modifier = Modifier,
+    content: @Composable () -> Unit,
+) {
+    val requester = remember { BringIntoViewRequester() }
+    LaunchedEffect(requester) {
+        withFrameNanos { }
+        runCatching { requester.bringIntoView() }
+    }
+    Box(modifier.bringIntoViewRequester(requester)) { content() }
 }

@@ -48,6 +48,7 @@ import kotlinx.coroutines.launch
 import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.basic.TextButton
 import top.yukonga.miuix.kmp.theme.MiuixTheme
+import cc.coauto.tailcat.shell.ui.ExpandingBlock
 
 /** 与 AppRoot 统一的过渡时长。 */
 private const val TRANSITION_MS = 320
@@ -123,7 +124,9 @@ fun DeviceListScreen(
             // 表单紧贴触发它的那一行展开，而不是掉到整组的末尾 ——
             // 否则点了「临时连接」却要往上看一大截才知道展开了什么。
             if (adding == AddMode.Persistent) {
-                DeviceEditorCard(manager, profile = null, temporary = false, onDone = { adding = null }, embedded = true)
+                ExpandingBlock {
+                    DeviceEditorCard(manager, profile = null, temporary = false, onDone = { adding = null }, embedded = true)
+                }
             }
             SettingRow(
                 title = "临时连接",
@@ -133,7 +136,9 @@ fun DeviceListScreen(
                 onClick = { adding = if (adding == AddMode.Temporary) null else AddMode.Temporary },
             )
             if (adding == AddMode.Temporary) {
-                DeviceEditorCard(manager, profile = null, temporary = true, onDone = { adding = null }, embedded = true)
+                ExpandingBlock {
+                    DeviceEditorCard(manager, profile = null, temporary = true, onDone = { adding = null }, embedded = true)
+                }
             }
             SettingRow(
                 title = "测试全部设备",

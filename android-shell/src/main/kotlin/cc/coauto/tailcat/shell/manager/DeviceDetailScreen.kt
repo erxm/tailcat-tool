@@ -66,6 +66,7 @@ import cc.coauto.tailcat.shell.ui.RowTrailing
 import cc.coauto.tailcat.shell.ui.SectionHeader
 import cc.coauto.tailcat.shell.ui.SettingRow
 import cc.coauto.tailcat.shell.ui.TailcatIcons
+import cc.coauto.tailcat.shell.ui.ExpandingBlock
 
 /** 与 ShellScreen 统一的过渡时长。 */
 private const val TRANSITION_MS = 320
@@ -379,19 +380,21 @@ fun DeviceDetailScreen(
             )
             // 表单就长在这一行下面（不再掉到分组底部）
             if (editing) {
-                DeviceEditorCard(
-                    manager = manager,
-                    profile = profile,
-                    temporary = temporary,
-                    embedded = true,
-                    onDone = {
+                ExpandingBlock {
+                    DeviceEditorCard(
+                        manager = manager,
+                        profile = profile,
+                        temporary = temporary,
+                        embedded = true,
+                        onDone = {
                         editing = false
                         // 概览里的地址读的是快照，改完得重新取一次
-                        scope.launch {
-                            address = runCatching { manager.addressForEditing(deviceId) }.getOrNull()
-                        }
-                    },
-                )
+                            scope.launch {
+                                address = runCatching { manager.addressForEditing(deviceId) }.getOrNull()
+                            }
+                        },
+                    )
+                }
             }
             if (temporary) {
                 SettingRow(
