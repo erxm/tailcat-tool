@@ -137,10 +137,13 @@ object TailcatServer {
             current = process
             process = null
         }
-        if (current == null) {
-            _state.value = ServerState.Stopped
-            return
-        }
+        // **立刻**置为已停止，而不是等进程退出。
+        // 之前这里只是 destroy()，状态由下面 wait 线程按**退出码**判定：SIGTERM 的退出码非 0，
+        // 于是一次用户主动的停止会显示成「tailcat 已退出（退出码 143），详见日志」——
+        // 明明是正常退出，却让人以为出错了。先置 Stopped 之后，wait 线程那条
+        // 「只有在 Starting/Running 时才改写状态」的判断就不会再把它覆盖成失败。
+        _state.value = ServerState.Stopped
+        if (current == null) return
         appendLog(context, "停止服务端")
         current.destroy()
         thread(isDaemon = true) {

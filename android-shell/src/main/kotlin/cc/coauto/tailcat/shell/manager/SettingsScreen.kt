@@ -1,6 +1,8 @@
 package cc.coauto.tailcat.shell.manager
 
 import android.content.Context
+import android.content.Intent
+import android.net.Uri
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
@@ -13,6 +15,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.vectorResource
+import cc.coauto.tailcat.shell.screen.ScrcpyServer
 import cc.coauto.tailcat.shell.ui.BigTitleBar
 import cc.coauto.tailcat.shell.ui.Dimens
 import cc.coauto.tailcat.shell.ui.GroupCard
@@ -20,6 +23,10 @@ import cc.coauto.tailcat.shell.ui.RowTrailing
 import cc.coauto.tailcat.shell.ui.SectionHeader
 import cc.coauto.tailcat.shell.ui.SettingRow
 import cc.coauto.tailcat.shell.ui.TailcatIcons
+import java.io.File
+
+/** 项目主页：fork 自 suyunkai/tailcat-tool，Windows + Android 两端都在这个仓库里。 */
+private const val PROJECT_URL = "github.com/erxm/tailcat-tool"
 
 /**
  * 设置：工具位置、地址簿、关于。
@@ -45,6 +52,8 @@ internal fun SettingsScreen(
         }.getOrDefault("未知")
     }
     val addressBook = tools.addressBookDirectory.ifEmpty { model.services.defaultAddressBookDirectory }
+    // 屏幕控制要用的那份 jar：首次投屏时才会被解出来，所以可能还不存在
+    val scrcpyJar = remember(context) { File(context.cacheDir, "scrcpy-server.jar") }
 
     Column(
         Modifier
@@ -67,6 +76,18 @@ internal fun SettingsScreen(
                 summary = adb ?: "未找到",
                 icon = ImageVector.vectorResource(TailcatIcons.Terminal),
                 trailing = RowTrailing.Value(if (adb != null) "可用" else "缺失"),
+            )
+            // 手机上**没有** scrcpy 可执行文件：屏幕控制是把官方 scrcpy-server.jar 推到被控设备上
+            // 由那边的 app_process 跑，本机只留一份 jar 供 `adb push`。所以这里显示的是那份 jar 的位置。
+            SettingRow(
+                title = "scrcpy-server",
+                summary = if (scrcpyJar.isFile) {
+                    scrcpyJar.absolutePath
+                } else {
+                    "随应用内置（v${ScrcpyServer.VERSION}），首次投屏时解出到应用缓存"
+                },
+                icon = ImageVector.vectorResource(TailcatIcons.Screen),
+                trailing = RowTrailing.Value(if (scrcpyJar.isFile) "已就绪" else "内置"),
             )
             SettingRow(
                 title = "重新检测",
@@ -94,8 +115,15 @@ internal fun SettingsScreen(
                 summary = "Tailcat 0.7.0 · scrcpy-server 5.0.1 · MIUIX 0.8.8 · CameraX + ZXing",
             )
             SettingRow(
-                title = "macOS 原版",
-                summary = "已归档在仓库 legacy-macos/，不再发布",
+                title = "项目主页",
+                summary = PROJECT_URL,
+                trailing = RowTrailing.Chevron,
+                onClick = {
+                    // 没有浏览器（车机之类）时不要崩，点不动就算了
+                    runCatching {
+                        context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://$PROJECT_URL")))
+                    }
+                },
             )
         }
     }

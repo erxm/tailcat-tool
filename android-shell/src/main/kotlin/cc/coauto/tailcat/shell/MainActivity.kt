@@ -144,9 +144,6 @@ internal fun ShellScreen(context: Context) {
     var persistentKey by remember { mutableStateOf(Settings.persistentKey(context)) }
     var hasSavedKey by remember { mutableStateOf(TailcatServer.hasPersistentKey(context)) }
     var showLog by remember { mutableStateOf(false) }
-    var showQr by remember { mutableStateOf(false) }
-    // 地址一出现就展开二维码：扫码是这一步最常做的事
-    LaunchedEffect(state is ServerState.Running) { if (state is ServerState.Running) showQr = true }
     var notice by remember { mutableStateOf<String?>(null) }
 
     val permissionLauncher = rememberLauncherForActivityResult(
@@ -216,65 +213,11 @@ internal fun ShellScreen(context: Context) {
 
         SectionHeader("服务")
         GroupCard {
-            SettingRow(
-                title = "启动",
-                summary = "按下面填的端口暴露本机 ADB",
-                icon = ImageVector.vectorResource(TailcatIcons.Server),
-                enabled = !running,
-                trailing = RowTrailing.Action("启动") {
-                    val parsed = Settings.ports(portsText)
-                    if (parsed.isEmpty()) {
-                        notice = "请先填写至少一个有效端口，例如 5555"
-                    } else {
-                        Settings.setPortsText(context, portsText)
-                        notice = null
-                        ContextCompat.startForegroundService(
-                            context,
-                            Intent(context, TailcatService::class.java).setAction(TailcatService.ACTION_START),
-                        )
-                    }
-                },
-            )
-            SettingRow(
-                title = "停止",
-                summary = "断开隧道并停掉前台服务",
-                icon = ImageVector.vectorResource(TailcatIcons.Refresh),
-                enabled = running,
-                trailing = RowTrailing.Action("停止") {
-                    TailcatServer.stop(context)
-                    context.stopService(Intent(context, TailcatService::class.java))
-                },
-            )
-            SettingRow(
-                title = "复制地址",
-                summary = address?.let { "tc 地址已生成" } ?: "启动后才有地址",
-                icon = ImageVector.vectorResource(TailcatIcons.Link),
-                enabled = address != null,
-                trailing = RowTrailing.Action("复制") {
-                    address?.let {
-                        clipboard.setText(AnnotatedString(it))
-                        notice = "地址已复制到剪贴板"
-                    }
-                },
-            )
-            SettingRow(
-                title = "二维码",
-                summary = "另一台手机扫码即可填入地址",
-                icon = ImageVector.vectorResource(TailcatIcons.Qr),
-                enabled = address != null,
-                trailing = RowTrailing.Value(if (showQr) "收起" else "展开"),
-                onClick = { showQr = !showQr },
-            )
-        }
-
-        AnimatedVisibility(
-            visible = showQr && address != null,
-            enter = fadeIn(tween(TRANSITION_MS)) + expandVertically(tween(TRANSITION_MS)),
-            exit = fadeOut(tween(TRANSITION_MS)) + shrinkVertically(tween(TRANSITION_MS)),
-        ) {
-            val shown = address.orEmpty()
-            val qr = remember(shown) { if (shown.isEmpty()) null else QrCode.bitmap(shown, 720) }
-            GroupCard(Modifier.padding(top = Dimens.CardGap)) {
+            // 地址一有，二维码就占这个分组的**第一行**并整块显示 ——
+            // 启动之后最常见的一步就是拿另一台手机来扫，不该再点一次才出现。
+            val shownAddress = address
+            if (shownAddress != null) {
+                val qr = remember(shownAddress) { QrCode.bitmap(shownAddress, 720) }
                 Column(
                     Modifier.fillMaxWidth().padding(Dimens.CardInner),
                     horizontalAlignment = Alignment.CenterHorizontally,
@@ -292,6 +235,48 @@ internal fun ShellScreen(context: Context) {
                     Text("地址本身是凭据，别外传", style = styles.footnote2, color = colors.onSurfaceVariantSummary)
                 }
             }
+
+            // 启动与停止是同一个开关的两面，合成一行：按钮文字跟着当前状态变。
+            // 之前是两个并排按钮，一个亮一个灰，还得先看一眼哪个能用。
+            SettingRow(
+                title = "Tailcat 服务",
+                summary = if (running) {
+                    "运行中 · 端口 " + ((state as? ServerState.Running)?.ports?.joinToString(",") ?: "")
+                } else {
+                    "把本机端口通过隧道暴露出去"
+                },
+                icon = ImageVector.vectorResource(TailcatIcons.Server),
+                trailing = RowTrailing.Action(if (running) "停止" else "启动") {
+                    if (running) {
+                        TailcatServer.stop(context)
+                        context.stopService(Intent(context, TailcatService::class.java))
+                    } else {
+                        val parsed = Settings.ports(portsText)
+                        if (parsed.isEmpty()) {
+                            notice = "请先填写至少一个有效端口，例如 5555"
+                        } else {
+                            Settings.setPortsText(context, portsText)
+                            notice = null
+                            ContextCompat.startForegroundService(
+                                context,
+                                Intent(context, TailcatService::class.java).setAction(TailcatService.ACTION_START),
+                            )
+                        }
+                    }
+                },
+            )
+            SettingRow(
+                title = "复制地址",
+                summary = address?.let { "tc 地址已生成" } ?: "启动后才有地址",
+                icon = ImageVector.vectorResource(TailcatIcons.Link),
+                enabled = address != null,
+                trailing = RowTrailing.Action("复制") {
+                    address?.let {
+                        clipboard.setText(AnnotatedString(it))
+                        notice = "地址已复制到剪贴板"
+                    }
+                },
+            )
         }
 
         SectionHeader("端口与密钥")
