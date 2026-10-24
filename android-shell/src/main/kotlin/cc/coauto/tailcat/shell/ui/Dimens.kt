@@ -49,8 +49,15 @@ public object Dimens {
     /** 行尾控件（开关 / 箭头 / 值）的点击区。 */
     public val Trailing = 48.dp
 
-    /** 行的垂直内边距：73dp 行高减去「标题 22.6 + 副标题 18.4」的内容。 */
-    public val RowVertical = 16.dp
+    /**
+     * 行的垂直内边距。
+     *
+     * 12dp 是让**带 48dp 行尾控件**的行也正好停在 [RowMinHeight] 上的值：
+     * 48 + 12×2 = 72 ≈ 73dp。写 16dp 的话这类行会被撑到 80dp，比参照应用高一截
+     * （实测就是这样发现的：文字行 73dp、带按钮的行 80.3dp）。
+     * 只有文字的行走 `heightIn(min = 73dp)` 兜底，不受这个值影响。
+     */
+    public val RowVertical = 12.dp
 
     /**
      * 分组标题左缩。**相对页边距**加 16dp，实际落在屏幕 28dp 处 —— 与行首图标对齐。
