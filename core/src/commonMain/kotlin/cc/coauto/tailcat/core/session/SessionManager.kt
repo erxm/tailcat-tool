@@ -4,6 +4,8 @@ import cc.coauto.tailcat.core.adb.AdbClient
 import cc.coauto.tailcat.core.config.AppConfiguration
 import cc.coauto.tailcat.core.config.ToolSettings
 import cc.coauto.tailcat.core.creds.CachedCredentialStore
+import cc.coauto.tailcat.core.creds.ClientIdentityRole
+import cc.coauto.tailcat.core.creds.ClientIdentityStore
 import cc.coauto.tailcat.core.creds.Credentials
 import cc.coauto.tailcat.core.creds.OutputRedactor
 import cc.coauto.tailcat.core.model.ConnectionState
@@ -70,6 +72,13 @@ public class SessionManager(
     private val runner: CommandExecuting = services.createRunner()
     private val reservations = PortReservations()
 
+    /**
+     * 每台设备一个持久 tailcat 客户端身份。**必须整个 SessionManager 共用一份**：
+     * 串行化是按身份名在进程内做的，转发、心跳探测、批量测试若各建一个新实例，
+     * 就会有两个进程同时用同一个 node key —— 那正是要避免的事。
+     */
+    private val identities = ClientIdentityStore(runner)
+
     private val stateDispatcher = Dispatchers.Default.limitedParallelism(1)
     public val scope: CoroutineScope = CoroutineScope(stateDispatcher + SupervisorJob())
 
@@ -96,7 +105,7 @@ public class SessionManager(
     private val sessionFlows = MutableStateFlow<Map<String, MutableStateFlow<DeviceSession>>>(emptyMap())
     private val fallbackSession = MutableStateFlow(DeviceSession())
 
-    public val reachability: ReachabilityChecker = ReachabilityChecker(runner, scope)
+    public val reachability: ReachabilityChecker = ReachabilityChecker(runner, identities, scope)
     public val componentInstaller: ComponentInstaller = ComponentInstaller(runner, services)
 
     // ——— 以下全部只在 scope（stateDispatcher）上访问 ———
@@ -428,7 +437,7 @@ public class SessionManager(
             if (!isCurrent(id, generation)) return
 
             log(id, "正在建立独立 Tailcat 转发通道")
-            val transport = services.transport(tailcat, runner, reservations)
+            val transport = services.transport(tailcat, runner, reservations, id, identities)
             val connection = transport.open(
                 address = address,
                 preferredPort = profile.preferredPort,
@@ -688,9 +697,13 @@ public class SessionManager(
             try {
                 val address = addressFor(id) ?: return@launch
                 val executable = services.locator.require(_tools.value.tailcat, "Tailcat")
-                val result = runner.run(
-                    Command(executable, listOf("ping", "--timeout=3s", address), timeoutMillis = 5_000),
-                )
+                // 心跳探测走 probe 身份，并和「测试全部设备」共用同一条道 ——
+                // 同一个持久身份不能被两个 ping 进程同时用。
+                val result = identities.usingIdentity(executable, id, ClientIdentityRole.Probe) { identity ->
+                    runner.run(
+                        Command(executable, listOf(identity, "ping", "--timeout=3s", address), timeoutMillis = 5_000),
+                    )
+                }
                 if (!targetIsCurrent(id, target)) return@launch
                 val output = Credentials.redact(result.output, address)
                 val pong = output.split('\n').lastOrNull { it.startsWith("pong in ") }

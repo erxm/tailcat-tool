@@ -43,6 +43,17 @@ public interface AdbClient {
         timeoutMillis: Long = 1_800_000,
     ): Command
 
+    /**
+     * `adb forward <local> <remote>`：把设备上的一个 socket 映射到本机端口。
+     *
+     * 屏幕控制要用它把 scrcpy-server 的 abstract socket 拉回本地：
+     * `forwardCommand(serial, "tcp:27183", "localabstract:scrcpy_<scid>")`。
+     *
+     * ⚠️ 客户端随后要对**同一个本地端口**开多条 TCP 连接（video 一条、control 一条），
+     * 不是多个端口 —— 服务端是按连接先后 accept 的。
+     */
+    public fun forwardCommand(serial: String, local: String, remote: String): Command
+
     /** 一次 shell 拿回型号/代号/版本/序列号/Shell 身份。 */
     public fun deviceInfoCommand(serial: String): Command = shellCommand(serial, DEVICE_INFO_SHELL)
 
@@ -132,4 +143,7 @@ public class ProcessAdbClient(
 
     override fun pullCommand(serial: String, remote: String, local: String, timeoutMillis: Long): Command =
         command("-s", serial, "pull", remote, local, timeoutMillis = timeoutMillis)
+
+    override fun forwardCommand(serial: String, local: String, remote: String): Command =
+        command("-s", serial, "forward", local, remote, timeoutMillis = 10_000)
 }

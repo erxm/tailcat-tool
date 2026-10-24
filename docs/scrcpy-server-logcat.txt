@@ -1,0 +1,185 @@
+--------- beginning of main
+10-15 23:25:08.438 28317 28317 D AndroidRuntime: >>>>>> START com.android.internal.os.RuntimeInit uid 2000 <<<<<<
+10-15 23:25:08.445 28317 28317 I AndroidRuntime: Using default boot image
+10-15 23:25:08.445 28317 28317 I AndroidRuntime: Leaving lock profiling enabled
+10-15 23:25:08.533 28317 28317 D AndroidRuntime: Calling main entry com.genymobile.scrcpy.Server
+10-15 23:25:08.540 28317 28317 I scrcpy  : Device: [Xiaomi] Xiaomi 2211133C (Android 17)
+10-15 23:25:08.597 28360 28360 D AndroidRuntime: >>>>>> START com.android.internal.os.RuntimeInit uid 2000 <<<<<<
+10-15 23:25:08.601 28360 28360 I AndroidRuntime: Using default boot image
+10-15 23:25:08.601 28360 28360 I AndroidRuntime: Leaving lock profiling enabled
+10-15 23:25:08.682 28360 28360 D AndroidRuntime: Calling main entry com.genymobile.scrcpy.CleanUp
+10-15 23:25:08.763 28317 28391 I MediaCodec: The process name is app_process / com.genymobile.scrcpy.Server 4.1 scid=1299fa56 log_level=debug audio=false 
+10-15 23:25:08.763 28317 28391 I MediaCodec: Retry enabled for HDCP failure
+10-15 23:25:08.763 28317 28391 D MediaCodec: MediaCodec overwrite invalid pid -1->28317
+10-15 23:25:08.763 28317 28391 D MediaCodec: MediaCodec u-p-n client:2000-28317-com.android.shell process:2000-28317-app_process
+10-15 23:25:08.764 28317 28391 D MediaCodec: mWeChatVideoUploadOptimizationFlag 0
+10-15 23:25:08.764 28317 28391 I MediaCodec: MediaCodec::MediaCodec()
+10-15 23:25:08.767 28317 28391 I Codec2Client: Available Codec2 services: "default" "default2" "default3" "software"
+10-15 23:25:08.770 28317 28392 I MediaCodec: [mId: 0] [avcE_X] setState: INITIALIZING
+10-15 23:25:08.771 28317 28395 D CCodec  : allocate(c2.qti.avc.encoder)
+10-15 23:25:08.776 28317 28395 I CCodec  : setting up 'default' as default (vendor) store
+10-15 23:25:08.784  6392 10164 I QC2Comp : [c2.qti.avc.encoder] PreProcessingPipelining 1
+10-15 23:25:08.790  6392 10164 I QC2Comp : Create: Allocated component[4] for name c2.qti.avc.encoder : [64 bit]
+10-15 23:25:08.790  6392 10164 I QC2Comp : Create Latency:6.59 ms
+10-15 23:25:08.791 28317 28395 I CCodec  : Created component [c2.qti.avc.encoder] for [c2.qti.avc.encoder]
+10-15 23:25:08.810 28317 28392 I MediaCodec: [mId: 0] [avcE_X] setState: INITIALIZED
+10-15 23:25:08.815 28317 28391 D scrcpy  : Using video encoder: 'c2.qti.avc.encoder'
+10-15 23:25:08.830 28317 28391 D scrcpy  : Video codec size alignment requirement: 2px
+10-15 23:25:08.834 28317 28391 I MediaCodec: [mId: 0] [avcE_X] configure: ClientName: com.android.shell ComponentName: c2.qti.avc.encoder
+10-15 23:25:08.835 28317 28391 I MediaCodec: [mId: 0] [avcE_X] configure: ClientFormat: AMessage(what = 0x00000000) = {
+10-15 23:25:08.835 28317 28391 I MediaCodec:   int32_t color-format = 2130708361
+10-15 23:25:08.835 28317 28391 I MediaCodec:   int32_t i-frame-interval = 10
+10-15 23:25:08.835 28317 28391 I MediaCodec:   string mime = "video/avc"
+10-15 23:25:08.835 28317 28391 I MediaCodec:   int32_t latency = 1
+10-15 23:25:08.835 28317 28391 I MediaCodec:   int32_t width = 1116
+10-15 23:25:08.835 28317 28391 I MediaCodec:   int32_t bitrate = 8000000
+10-15 23:25:08.835 28317 28391 I MediaCodec:   int32_t color-range = 2
+10-15 23:25:08.835 28317 28391 I MediaCodec:   int32_t priority = 0
+10-15 23:25:08.835 28317 28391 I MediaCodec:   int32_t frame-rate = 60
+10-15 23:25:08.835 28317 28391 I MediaCodec:   int64_t repeat-previous-frame-after = 100000
+10-15 23:25:08.835 28317 28391 I MediaCodec:   int32_t height = 2480
+10-15 23:25:08.835 28317 28391 I MediaCodec: }
+10-15 23:25:08.837 28317 28391 I MediaCodec: init video box disabled for init not supported
+10-15 23:25:08.840 28317 28391 I MediaCodec: configure: video box disabled because codec is not video
+10-15 23:25:08.845 28317 28391 D MediaCodec: shapeMediaFormat: deltas(1): AMessage(what = 0x00000000) = {
+10-15 23:25:08.845 28317 28391 D MediaCodec:     int32_t android._encoding-quality-level = 0
+10-15 23:25:08.845 28317 28391 D MediaCodec:   }
+10-15 23:25:08.847 28317 28392 I MediaCodec: [mId: 0] [avcE_X] setState: CONFIGURING
+10-15 23:25:08.847 28317 28395 D CCodec  : [c2.qti.avc.encoder] buffers are bound to CCodec for this session
+10-15 23:25:08.849 28317 28395 W Codec2Client: query -- param skipped: index = 3254781982.
+10-15 23:25:08.849 28317 28395 D CCodec  : encoding statistics level = 0
+10-15 23:25:08.849 28317 28395 D CCodec  : setup formats input: AMessage(what = 0x00000000) = {
+10-15 23:25:08.849 28317 28395 D CCodec  :   int32_t android._color-format = 2130708361
+10-15 23:25:08.849 28317 28395 D CCodec  :   Rect crop(0, 0, 1115, 2479)
+10-15 23:25:08.849 28317 28395 D CCodec  :   int32_t color-standard = 130816
+10-15 23:25:08.849 28317 28395 D CCodec  :   int32_t color-range = 2
+10-15 23:25:08.849 28317 28395 D CCodec  :   int32_t color-transfer = 65791
+10-15 23:25:08.849 28317 28395 D CCodec  :   Buffer hdr-static-info = {
+10-15 23:25:08.849 28317 28395 D CCodec  :     00000000:  00 00 00 00 00 00 00 00  00 00 00 00 00 00 00 00  ................
+10-15 23:25:08.849 28317 28395 D CCodec  :     00000010:  00 00 00 00 00 00 00 00  00                       .........
+10-15 23:25:08.849 28317 28395 D CCodec  :   }
+10-15 23:25:08.849 28317 28395 D CCodec  :   int32_t width = 1116
+10-15 23:25:08.849 28317 28395 D CCodec  :   int32_t feature-secure-playback = 0
+10-15 23:25:08.849 28317 28395 D CCodec  :   int32_t frame-rate = 60
+10-15 23:25:08.849 28317 28395 D CCodec  :   int32_t height = 2480
+10-15 23:25:08.849 28317 28395 D CCodec  :   int32_t intra-refresh-period = 0
+10-15 23:25:08.849 28317 28395 D CCodec  :   int32_t latency = 1
+10-15 23:25:08.849 28317 28395 D CCodec  :   string mime = "video/raw"
+10-15 23:25:08.849 28317 28395 D CCodec  :   int32_t prepend-sps-pps-to-idr-frames = 0
+10-15 23:25:08.849 28317 28395 D CCodec  :   int32_t priority = 0
+10-15 23:25:08.849 28317 28395 D CCodec  :   int32_t android._dataspace = 260
+10-15 23:25:08.849 28317 28395 D CCodec  :   int32_t vendor.qti-ext-cpu-affinity-set-mask.value = 255
+10-15 23:25:08.849 28317 28395 D CCodec  :   int64_t android._C2MemoryUsage = 4503599900066560
+10-15 23:25:08.849 28317 28395 D CCodec  :   int32_t color-format = 2130708361
+10-15 23:25:08.849 28317 28395 D CCodec  : }
+10-15 23:25:08.849 28317 28395 D CCodec  : setup formats output: AMessage(what = 0x00000000) = {
+10-15 23:25:08.849 28317 28395 D CCodec  :   int32_t bitrate = 8000000
+10-15 23:25:08.849 28317 28395 D CCodec  :   int32_t bitrate-mode = 1
+10-15 23:25:08.849 28317 28395 D CCodec  :   Rect crop(0, 0, 1115, 2479)
+10-15 23:25:08.849 28317 28395 D CCodec  :   int32_t width = 1116
+10-15 23:25:08.849 28317 28395 D CCodec  :   int32_t color-standard = 130816
+10-15 23:25:08.849 28317 28395 D CCodec  :   int32_t color-range = 2
+10-15 23:25:08.849 28317 28395 D CCodec  :   int32_t color-transfer = 65791
+10-15 23:25:08.849 28317 28395 D CCodec  :   int32_t feature-secure-playback = 0
+10-15 23:25:08.849 28317 28395 D CCodec  :   int32_t frame-rate = 60
+10-15 23:25:08.849 28317 28395 D CCodec  :   int32_t height = 2480
+10-15 23:25:08.849 28317 28395 D CCodec  :   int32_t intra-refresh-period = 0
+10-15 23:25:08.849 28317 28395 D CCodec  :   int32_t latency = 1
+10-15 23:25:08.849 28317 28395 D CCodec  :   int32_t max-bitrate = 8000000
+10-15 23:25:08.849 28317 28395 D CCodec  :   string mime = "video/avc"
+10-15 23:25:08.849 28317 28395 D CCodec  :   int32_t prepend-sps-pps-to-idr-frames = 0
+10-15 23:25:08.849 28317 28395 D CCodec  :   int32_t priority = 0
+10-15 23:25:08.849 28317 28395 D CCodec  :   int32_t profile = 8
+10-15 23:25:08.849 28317 28395 D CCodec  :   int32_t temporal-layer-id = 0
+10-15 23:25:08.849 28317 28395 D CCodec  : }
+10-15 23:25:08.850 28317 28392 I MediaCodec: [mId: 0] [avcE_X] setState: CONFIGURED
+10-15 23:25:08.856 28317 28395 D CCodec  : aidl based PersistentSurface created
+10-15 23:25:08.856 28317 28395 D CCodec  : input format changed to AMessage(what = 0x00000000) = {
+10-15 23:25:08.856 28317 28395 D CCodec  :   int32_t android._color-format = 2130708361
+10-15 23:25:08.856 28317 28395 D CCodec  :   Rect crop(0, 0, 1115, 2479)
+10-15 23:25:08.856 28317 28395 D CCodec  :   int32_t color-standard = 1
+10-15 23:25:08.856 28317 28395 D CCodec  :   int32_t color-range = 2
+10-15 23:25:08.856 28317 28395 D CCodec  :   int32_t color-transfer = 3
+10-15 23:25:08.856 28317 28395 D CCodec  :   Buffer hdr-static-info = {
+10-15 23:25:08.856 28317 28395 D CCodec  :     00000000:  00 00 00 00 00 00 00 00  00 00 00 00 00 00 00 00  ................
+10-15 23:25:08.856 28317 28395 D CCodec  :     00000010:  00 00 00 00 00 00 00 00  00                       .........
+10-15 23:25:08.856 28317 28395 D CCodec  :   }
+10-15 23:25:08.856 28317 28395 D CCodec  :   int32_t width = 1116
+10-15 23:25:08.856 28317 28395 D CCodec  :   int32_t feature-secure-playback = 0
+10-15 23:25:08.856 28317 28395 D CCodec  :   int32_t frame-rate = 60
+10-15 23:25:08.856 28317 28395 D CCodec  :   int32_t height = 2480
+10-15 23:25:08.856 28317 28395 D CCodec  :   int32_t intra-refresh-period = 0
+10-15 23:25:08.856 28317 28395 D CCodec  :   int32_t latency = 1
+10-15 23:25:08.856 28317 28395 D CCodec  :   string mime = "video/raw"
+10-15 23:25:08.856 28317 28395 D CCodec  :   int32_t prepend-sps-pps-to-idr-frames = 0
+10-15 23:25:08.856 28317 28395 D CCodec  :   int32_t priority = 0
+10-15 23:25:08.856 28317 28395 D CCodec  :   int32_t android._dataspace = 260
+10-15 23:25:08.856 28317 28395 D CCodec  :   int32_t vendor.qti-ext-cpu-affinity-set-mask.value = 255
+10-15 23:25:08.856 28317 28395 D CCodec  :   int64_t android._C2MemoryUsage = 4503599900066560
+10-15 23:25:08.856 28317 28395 D CCodec  :   int32_t color-format = 2130708361
+10-15 23:25:08.856 28317 28395 D CCodec  : }
+10-15 23:25:08.857 28317 28395 D CCodec  : ISConfig minFps=10 => repeatDelayUs=100000
+10-15 23:25:08.873 28317 28391 D scrcpy  : Display: using DisplayManager API
+10-15 23:25:08.874 28317 28392 I MediaCodec: [mId: 0] [avcE_X] setState: STARTING
+10-15 23:25:08.891 28317 28395 W Codec2Client: query -- param skipped: index = 1342179345.
+10-15 23:25:08.891 28317 28395 W Codec2Client: query -- param skipped: index = 2415921170.
+10-15 23:25:08.896 28317 28392 I MediaCodec: [mId: 0] [avcE_X] setState: STARTED
+10-15 23:25:08.967  6392 28404 I QC2Comp : [avcE_4] Initiate perf locl for 15000 ms for RGB inputs
+10-15 23:25:09.010 28317 28392 D MediaCodec: remove parameter qti-ext-comp-id failed!
+10-15 23:25:09.389  6392 28404 I QC2Comp : [avcE_4] Stats: Pending(0) i/p-done(0) Works: Q: 6/Done 6|Work-Rate: Q(10.0/s Avg=10.0/s) Done(10.008/s Avg=10.008/s)| Stream: 23.68fps 1.9Mbps
+10-15 23:25:09.389  6392 28404 I QC2Comp : [avcE_4] Mem-usage:  [In-2D: 2 bufs 21.953 MB] [1D-23: 6 bufs 12.000 MB] [1D-24: 6 bufs 0.094 MB] | Total: 34.047 MB
+10-15 23:25:10.815  6392  6629 I QC2Comp : [avcD_1] Stats: Pending(9) i/p-done(5) Works: Q: 74/Done 66|Work-Rate: Q(0.0/s Avg=0.1/s) Done(0.000/s Avg=0.061/s)| Stream: 30.00fps 39.0Mbps
+10-15 23:25:10.815  6392  6629 I QC2Comp : [avcD_1] Mem-usage:  [In-1D: 10 bufs 67.500 MB] [1D-17: 26 bufs 0.406 MB] [2D-18: 31 bufs 124.121 MB] | Total: 192.027 MB
+10-15 23:25:13.970 28317 28392 I MediaCodec: [mId: 0] [avcE_X] state STARTED mFlags 2336 Stats 5097ms:Client:com.android.shell,Component:c2.qti.avc.encoder,Qin:0,DQin:0/0,Render:0,encode:52,DQout:52/54
+10-15 23:25:14.391  6392 28404 I QC2Comp : [avcE_4] Stats: Pending(0) i/p-done(0) Works: Q: 56/Done 56|Work-Rate: Q(10.0/s Avg=10.0/s) Done(9.996/s Avg=9.998/s)| Stream: 10.00fps 230.2Kbps
+10-15 23:25:14.391  6392 28404 I QC2Comp : [avcE_4] Mem-usage:  [In-2D: 2 bufs 21.953 MB] [1D-23: 6 bufs 12.000 MB] [1D-24: 6 bufs 0.094 MB] | Total: 34.047 MB
+10-15 23:25:15.816  6392  6629 I QC2Comp : [avcD_1] Stats: Pending(9) i/p-done(5) Works: Q: 74/Done 66|Work-Rate: Q(0.0/s Avg=0.1/s) Done(0.000/s Avg=0.061/s)| Stream: 30.00fps 39.0Mbps
+10-15 23:25:15.816  6392  6629 I QC2Comp : [avcD_1] Mem-usage:  [In-1D: 10 bufs 67.500 MB] [1D-17: 26 bufs 0.406 MB] [2D-18: 31 bufs 124.121 MB] | Total: 192.027 MB
+10-15 23:25:18.973 28317 28392 I MediaCodec: [mId: 0] [avcE_X] state STARTED mFlags 2336 Stats 5003ms:Client:com.android.shell,Component:c2.qti.avc.encoder,Qin:0,DQin:0/0,Render:0,encode:137,DQout:137/137
+10-15 23:25:19.391  6392 28404 I QC2Comp : [avcE_4] Stats: Pending(1) i/p-done(1) Works: Q: 234/Done 233|Work-Rate: Q(35.6/s Avg=22.1/s) Done(35.398/s Avg=21.978/s)| Stream: 134.93fps 3.9Mbps
+10-15 23:25:19.391  6392 28404 I QC2Comp : [avcE_4] Mem-usage:  [In-2D: 3 bufs 32.930 MB] [1D-23: 6 bufs 12.000 MB] [1D-24: 6 bufs 0.094 MB] | Total: 45.023 MB
+10-15 23:25:20.817  6392  6629 I QC2Comp : [avcD_1] Stats: Pending(9) i/p-done(5) Works: Q: 74/Done 66|Work-Rate: Q(0.0/s Avg=0.1/s) Done(0.000/s Avg=0.060/s)| Stream: 30.00fps 39.0Mbps
+10-15 23:25:20.817  6392  6629 I QC2Comp : [avcD_1] Mem-usage:  [In-1D: 10 bufs 67.500 MB] [1D-17: 26 bufs 0.406 MB] [2D-18: 31 bufs 124.121 MB] | Total: 192.027 MB
+10-15 23:25:24.016 28317 28392 I MediaCodec: [mId: 0] [avcE_X] state STARTED mFlags 2336 Stats 5042ms:Client:com.android.shell,Component:c2.qti.avc.encoder,Qin:0,DQin:0/0,Render:0,encode:157,DQout:157/157
+10-15 23:25:24.391  6392 28404 I QC2Comp : [avcE_4] Stats: Pending(1) i/p-done(1) Works: Q: 350/Done 349|Work-Rate: Q(23.2/s Avg=22.4/s) Done(23.199/s Avg=22.369/s)| Stream: 10.00fps 187.5Kbps
+10-15 23:25:24.392  6392 28404 I QC2Comp : [avcE_4] Mem-usage:  [In-2D: 4 bufs 43.906 MB] [1D-23: 6 bufs 12.000 MB] [1D-24: 6 bufs 0.094 MB] | Total: 56.000 MB
+10-15 23:25:25.817  6392  6629 I QC2Comp : [avcD_1] Stats: Pending(9) i/p-done(5) Works: Q: 74/Done 66|Work-Rate: Q(0.0/s Avg=0.1/s) Done(0.000/s Avg=0.060/s)| Stream: 30.00fps 39.0Mbps
+10-15 23:25:25.817  6392  6629 I QC2Comp : [avcD_1] Mem-usage:  [In-1D: 10 bufs 67.500 MB] [1D-17: 26 bufs 0.406 MB] [2D-18: 31 bufs 124.121 MB] | Total: 192.027 MB
+10-15 23:25:28.948 28317 28386 D scrcpy  : Controller stopped
+10-15 23:25:28.950 28317 28390 D scrcpy  : Device message sender stopped
+10-15 23:25:28.951  6392 28404 I QC2Comp : [avcE_4] Registered an empty EOS buffer
+10-15 23:25:28.953  6392 28404 W QC2Comp : [avcE_4] Skipping empty output buffer
+10-15 23:25:28.955 28317 28391 I MediaCodec: [mId: 0] [avcE_X] stop
+10-15 23:25:28.955 28317 28392 I MediaCodec: [mId: 0] [avcE_X] state STARTED mFlags 2304 Stats 4939ms:Client:com.android.shell,Component:c2.qti.avc.encoder,Qin:0,DQin:0/0,Render:0,encode:53,DQout:53/52
+10-15 23:25:28.955 28317 28392 I MediaCodec: [mId: 0] [avcE_X] setState: STOPPING
+10-15 23:25:29.004 28317 28392 I MediaCodec: [mId: 0] [avcE_X] setState: INITIALIZED
+10-15 23:25:29.004 28317 28392 I MediaCodec: [mId: 0] [avcE_X] setState: RELEASING
+10-15 23:25:29.005 28317 28688 D CCodec  : hold CodecLooper(1) until release
+10-15 23:25:29.006  6392 28404 I QC2Comp : [avcE_4] Stats: Pending(0) i/p-done(0) Works: Q: 398/Done 398|Work-Rate: Q(10.4/s Avg=19.7/s) Done(10.618/s Avg=19.687/s)| Stream: 10.00fps 187.4Kbps
+10-15 23:25:29.006  6392 28404 I QC2Comp : [avcE_4] Mem-usage:  [In-2D: 4 bufs 43.906 MB] [1D-23: 6 bufs 12.000 MB] [1D-24: 6 bufs 0.094 MB] | Total: 56.000 MB
+10-15 23:25:29.006  6392 28404 I QC2Comp : [avcE_4][STOPPED] NOTE: handleReleaseCodec returning: 0 (OK=0)
+10-15 23:25:29.006  6392  6441 I QC2Comp : [avcE_4] NOTE: Release returning: 0 (OK=0)
+10-15 23:25:29.007 28317 28392 I MediaCodec: [mId: 0] [avcE_X] setState: UNINITIALIZED
+10-15 23:25:29.013  6392  6453 I QC2Comp : [avcE_4] Deallocated component c2.qti.avc.encoder [id=4]
+10-15 23:25:29.020 28317 28392 I MediaCodec: [mId: 0] [avcE_X] setState: INITIALIZING
+10-15 23:25:29.020 28317 28395 D CCodec  : allocate(c2.qti.avc.encoder)
+10-15 23:25:29.024 28317 28395 I CCodec  : setting up 'default' as default (vendor) store
+10-15 23:25:29.024  6392  6453 I QC2Comp : [c2.qti.avc.encoder] PreProcessingPipelining 1
+10-15 23:25:29.029  6392  6453 I QC2Comp : Create: Allocated component[5] for name c2.qti.avc.encoder : [64 bit]
+10-15 23:25:29.029  6392  6453 I QC2Comp : Create Latency:4.93 ms
+10-15 23:25:29.032 28317 28395 I CCodec  : Created component [c2.qti.avc.encoder] for [c2.qti.avc.encoder]
+10-15 23:25:29.060 28317 28392 I MediaCodec: [mId: 0] [avcE_X] setState: INITIALIZED
+10-15 23:25:29.062 28317 28392 I MediaCodec: [mId: 0] [avcE_X] setState: RELEASING
+10-15 23:25:29.063 28317 28691 D CCodec  : hold CodecLooper(1) until release
+10-15 23:25:29.064  6392 28689 I QC2Comp : [avcE_5] Stats: Pending(0) i/p-done(0) Works: Q: 0/Done 0|Work-Rate: Q(0.0/s Avg=0.0/s) Done(0.000/s Avg=0.000/s)| Stream: 30.00fps 0.0Kbps
+10-15 23:25:29.064  6392 28689 I QC2Comp : [avcE_5] Mem-usage:  | Total: 0.000 MB
+10-15 23:25:29.064  6392 28689 I QC2Comp : [avcE_5][STOPPED] NOTE: handleReleaseCodec returning: 0 (OK=0)
+10-15 23:25:29.064  6392  6453 I QC2Comp : [avcE_5] NOTE: Release returning: 0 (OK=0)
+10-15 23:25:29.065 28317 28392 I MediaCodec: [mId: 0] [avcE_X] setState: UNINITIALIZED
+10-15 23:25:29.065  6392  6453 I QC2Comp : [avcE_5] Deallocated component c2.qti.avc.encoder [id=5]
+10-15 23:25:29.070 28317 28391 D scrcpy  : Screen streaming stopped
+10-15 23:25:29.074 28317 28317 I AndroidRuntime: VM exiting with result code 0.
+10-15 23:25:29.115 28360 28360 I scrcpy  : Cleaning up
+10-15 23:25:29.120 28360 28360 I AndroidRuntime: VM exiting with result code 0.
+10-15 23:25:30.817  6392  6629 I QC2Comp : [avcD_1] Stats: Pending(9) i/p-done(5) Works: Q: 74/Done 66|Work-Rate: Q(0.0/s Avg=0.1/s) Done(0.000/s Avg=0.060/s)| Stream: 30.00fps 39.0Mbps
+10-15 23:25:30.817  6392  6629 I QC2Comp : [avcD_1] Mem-usage:  [In-1D: 10 bufs 67.500 MB] [1D-17: 26 bufs 0.406 MB] [2D-18: 31 bufs 124.121 MB] | Total: 192.027 MB

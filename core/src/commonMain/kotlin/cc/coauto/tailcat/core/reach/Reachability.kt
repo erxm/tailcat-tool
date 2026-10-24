@@ -1,5 +1,7 @@
 package cc.coauto.tailcat.core.reach
 
+import cc.coauto.tailcat.core.creds.ClientIdentityRole
+import cc.coauto.tailcat.core.creds.ClientIdentityStore
 import cc.coauto.tailcat.core.creds.Credentials
 import cc.coauto.tailcat.core.model.ConnectionState
 import cc.coauto.tailcat.core.model.DeviceProfile
@@ -48,6 +50,7 @@ private val PONG_LATENCY = Regex("^[0-9]+(?:\\.[0-9]+)?ms$")
  */
 public class ReachabilityChecker(
     private val runner: CommandExecuting,
+    private val identities: ClientIdentityStore,
     private val scope: CoroutineScope,
     private val concurrency: Int = 3,
 ) {
@@ -142,13 +145,17 @@ public class ReachabilityChecker(
                 throw ManagerException("没有有效连接凭据，请编辑设备或导入地址簿")
             }
             if (tailcatPath.isEmpty()) throw ManagerException("未找到 Tailcat，请在工具设置中指定路径")
-            val result = runner.run(
-                Command(
-                    executable = tailcatPath,
-                    arguments = listOf("ping", "--timeout=5s", credential),
-                    timeoutMillis = 8_000,
-                ),
-            )
+            // 探测按（设备 × probe 身份）串行：同一个持久 node key 不能被两个 ping 进程同时用。
+            // 排队比换身份好 —— 换成临时身份那探的就不是连接实际用的节点了。
+            val result = identities.usingIdentity(tailcatPath, profile.id, ClientIdentityRole.Probe) { identity ->
+                runner.run(
+                    Command(
+                        executable = tailcatPath,
+                        arguments = listOf(identity, "ping", "--timeout=5s", credential),
+                        timeoutMillis = 8_000,
+                    ),
+                )
+            }
             if (result.cancelled) throw CancellationException("已取消")
             val output = Credentials.redact(result.output, credential)
             val detail = output.trim().take(1000)

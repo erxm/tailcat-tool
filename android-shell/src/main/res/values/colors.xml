@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 由 android-shell/icons/GenerateIcon.java 从 macOS 图标取样生成，不要手改。 -->
+<resources>
+    <color name="ic_launcher_background">#FFFFFF</color>
+</resources>

@@ -1,0 +1,74 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+
+    <!-- 扫码添加设备：读对端手机上「服务端」页显示的那个 tc 地址二维码。 -->
+    <uses-permission android:name="android.permission.CAMERA" />
+    <!-- required=false：车机之类的设备常常没有摄像头，没有就当这项功能不存在，
+         不能因此拦掉整个安装。 -->
+    <uses-feature
+        android:name="android.hardware.camera"
+        android:required="false" />
+
+    <!-- NoActionBar：MIUI 风格里没有系统标题栏，界面的层级由内容自己表达。
+         留着它会和界面内的标题重复，还白占 56dp 高度。 -->
+    <application
+        android:icon="@mipmap/ic_launcher"
+        android:label="Tailcat Manager"
+        android:theme="@android:style/Theme.DeviceDefault.NoActionBar">
+
+        <activity
+            android:name=".MainActivity"
+            android:exported="true"
+            android:label="Tailcat Manager"
+            android:launchMode="singleTop">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+
+        <!--
+          specialUse：这是一条用户自己发起的、需要长时间维持的网络隧道，
+          不属于 dataSync（那种会被 Android 15 限制 6 小时）也不属于其它任何既有类型。
+        -->
+        <service
+            android:name=".TailcatService"
+            android:exported="false"
+            android:foregroundServiceType="specialUse">
+            <property
+                android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
+                android:value="维持一条用户发起的、到本机 ADB 端口的加密隧道，供远程调试使用" />
+        </service>
+
+        <!--
+          管理器角色同样需要一个前台服务：没有它，应用退到后台就会被冻结，
+          心跳与自动重连的协程一起停住，链路断了也不会自己恢复。
+        -->
+        <service
+            android:name=".ManagerService"
+            android:exported="false"
+            android:foregroundServiceType="specialUse">
+            <property
+                android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
+                android:value="维持用户发起的设备管理连接（Tailcat 隧道 + ADB），中断后无需用户干预即可恢复" />
+        </service>
+
+        <receiver
+            android:name=".BootReceiver"
+            android:exported="true"
+            android:enabled="true">
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+                <action android:name="android.intent.action.LOCKED_BOOT_COMPLETED" />
+            </intent-filter>
+        </receiver>
+
+    </application>
+
+</manifest>

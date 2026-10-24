@@ -12,5 +12,17 @@ local.properties
 # 本机运行期数据（绝不入库）
 *.log
 
-# 官方直链下载的工具会解压到这里，不入库
-tools/
+# legacy-macos 仅作参考，不参与构建
+legacy-macos/.build/
+legacy-macos/dist/
+
+# tailcat 二进制由 Gradle 从官方 release 下载，不入库（17MB）
+android-shell/src/main/jniLibs/
+
+# scrcpy-server 同样由 Gradle 下载（推到被控设备上执行），不入库
+android-shell/src/main/assets/
+
+# 签名密钥与口令，绝不入库（默认位置在仓库外的 ../tailcat-signing/）
+keystore.properties
+*.jks
+*.p12

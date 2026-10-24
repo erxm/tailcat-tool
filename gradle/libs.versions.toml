@@ -1,10 +1,22 @@
 [versions]
 kotlin = "2.4.21"
 compose = "1.12.1"
+agp = "8.13.2"
 coroutines = "1.11.0"
 serialization = "1.11.0"
 immutable = "0.5.2"
 jna = "5.19.1"
+# 注意：Compose 1.12.x 起要求 compileSdk 37，而本机只装了 platform 36。
+# 这个 BOM 对应 Compose 1.10.3 —— 正好是 MIUIX 0.8.8 依赖的版本。
+composeBom = "2026.02.00"
+miuix = "0.8.8"
+activityCompose = "1.11.0"
+coreKtx = "1.17.0"
+zxing = "3.5.4"
+documentfile = "1.1.0"
+# 扫码用 CameraX。**不用 ML Kit**：它带 native 库，而本项目被 16KB 页对齐坑过
+# （见 THIRD_PARTY_NOTICES 里 adb 那一段）；CameraX 是纯 Java/AndroidX，没有原生库。
+camerax = "1.6.2"
 
 [libraries]
 kotlinx-coroutines-core = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-core", version.ref = "coroutines" }
@@ -16,9 +28,28 @@ jna = { module = "net.java.dev.jna:jna", version.ref = "jna" }
 jna-platform = { module = "net.java.dev.jna:jna-platform", version.ref = "jna" }
 kotlin-test = { module = "org.jetbrains.kotlin:kotlin-test", version.ref = "kotlin" }
 
+# ——— Android 壳（android-shell）———
+androidx-compose-bom = { module = "androidx.compose:compose-bom", version.ref = "composeBom" }
+androidx-activity-compose = { module = "androidx.activity:activity-compose", version.ref = "activityCompose" }
+androidx-core-ktx = { module = "androidx.core:core-ktx", version.ref = "coreKtx" }
+androidx-documentfile = { module = "androidx.documentfile:documentfile", version.ref = "documentfile" }
+# 以下三个版本由 BOM 统一管理
+androidx-compose-material3 = { module = "androidx.compose.material3:material3" }
+androidx-compose-foundation = { module = "androidx.compose.foundation:foundation" }
+androidx-compose-ui-graphics = { module = "androidx.compose.ui:ui-graphics" }
+zxing-core = { module = "com.google.zxing:core", version.ref = "zxing" }
+miuix = { module = "top.yukonga.miuix.kmp:miuix", version.ref = "miuix" }
+androidx-camera-core = { module = "androidx.camera:camera-core", version.ref = "camerax" }
+androidx-camera-camera2 = { module = "androidx.camera:camera-camera2", version.ref = "camerax" }
+androidx-camera-lifecycle = { module = "androidx.camera:camera-lifecycle", version.ref = "camerax" }
+androidx-camera-view = { module = "androidx.camera:camera-view", version.ref = "camerax" }
+
 [plugins]
 kotlinMultiplatform = { id = "org.jetbrains.kotlin.multiplatform", version.ref = "kotlin" }
 kotlinJvm = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin" }
 kotlinSerialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }
 composeCompiler = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
 composeMultiplatform = { id = "org.jetbrains.compose", version.ref = "compose" }
+androidLibrary = { id = "com.android.library", version.ref = "agp" }
+androidApplication = { id = "com.android.application", version.ref = "agp" }
+kotlinAndroid = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }

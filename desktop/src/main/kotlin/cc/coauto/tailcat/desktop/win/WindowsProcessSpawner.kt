@@ -38,6 +38,11 @@ public class JavaProcessSpawner(
         if (command.environment.isNotEmpty()) builder.environment().putAll(command.environment)
         val process = builder.start()
 
+        // 纳入 Job Object：应用被强杀或崩溃时由内核一并回收，不留孤儿。
+        // **必须在这里做**，不能等到 stop() —— 那时代码已经没有执行机会了。
+        // 尽力而为：拿不到 Job 只是少了兜底，正常退出的回收路径不受影响。
+        ProcessJob.assign(process.pid())
+
         // 不向子进程写任何东西；关掉 stdin 让 adb 之类的工具立即 EOF。
         runCatching { process.outputStream.close() }
 

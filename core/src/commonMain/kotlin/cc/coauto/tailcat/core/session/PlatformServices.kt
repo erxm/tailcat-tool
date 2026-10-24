@@ -3,6 +3,7 @@ package cc.coauto.tailcat.core.session
 import cc.coauto.tailcat.core.adb.AdbClient
 import cc.coauto.tailcat.core.config.ConfigurationStore
 import cc.coauto.tailcat.core.config.LegacyImport
+import cc.coauto.tailcat.core.creds.ClientIdentityStore
 import cc.coauto.tailcat.core.creds.CredentialStore
 import cc.coauto.tailcat.core.proc.CommandExecuting
 import cc.coauto.tailcat.core.tools.ExecutableLocator
@@ -28,10 +29,16 @@ public interface PlatformServices {
 
     public fun adbClient(executablePath: String): AdbClient
 
+    /**
+     * 建一条转发通道。转发是**每台设备一个持久身份**跑的，所以要把 [deviceId] 和
+     * 共享的 [identities] 一起传下去；实现方原样交给 `TailcatTransport` 即可。
+     */
     public fun transport(
         executablePath: String,
         runner: CommandExecuting,
         reservations: PortReservations,
+        deviceId: String,
+        identities: ClientIdentityStore,
     ): ForwardTransport
 
     /**

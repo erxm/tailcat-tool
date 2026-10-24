@@ -1,0 +1,34 @@
+scrcpy 5.0.1 <https://github.com/Genymobile/scrcpy>
+No video mirroring, SDK mouse disabled
+INFO: ADB device found:
+INFO:     -->   (usb)  82a961ba                        device  2211133C
+INFO:         (tcpip)  127.0.0.1:5565                  device  2211133C
+INFO:         (tcpip)  192.168.2.123:5555             offline  2512BPNDAC
+INFO:         (tcpip)  192.168.2.176:5555              device  2211133C
+DEBUG: Device serial: 82a961ba
+DEBUG: Using server (portable): C:\Users\S15\AppData\Local\Temp\sc5\scrcpy-win64-v5.0.1\scrcpy-server
+C:\Users\S15\AppData\Local\Temp\sc5\scrcpy-win64-v5.0.1\scrcpy-server: 1 file pushed, 0 skipped. 354.1 MB/s (733930 bytes in 0.002s)
+[server] INFO: Device: [Xiaomi] Xiaomi 2211133C (Android 17)
+DEBUG: Server connected
+DEBUG: Starting controller thread
+DEBUG: Starting receiver thread
+INFO: Recording started to mp4 file: /tmp/sc5_opts.mp4
+[server] DEBUG: Using video encoder: 'c2.qti.avc.encoder'
+[server] DEBUG: Video codec size alignment requirement: 2px
+[server] DEBUG: Display: using DisplayManager API
+INFO: Renderer: direct3d11
+INFO: Interop: software
+DEBUG: Using icon (portable): C:\Users\S15\AppData\Local\Temp\sc5\scrcpy-win64-v5.0.1\scrcpy.png
+DEBUG: Demuxer 'video': starting thread
+INFO: Time limit reached
+DEBUG: Quit...
+DEBUG: Controller stopped
+DEBUG: Demuxer 'video': end of frames
+DEBUG: Receiver stopped
+INFO: Recording complete to mp4 file: /tmp/sc5_opts.mp4
+DEBUG: Recorder thread ended
+[server] DEBUG: Controller stopped
+[server] DEBUG: Device message sender stopped
+[server] DEBUG: Screen streaming stopped
+DEBUG: Server disconnected
+DEBUG: Server terminated

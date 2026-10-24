@@ -4,6 +4,7 @@ import cc.coauto.tailcat.core.adb.AdbClient
 import cc.coauto.tailcat.core.config.AppConfiguration
 import cc.coauto.tailcat.core.config.LegacyImport
 import cc.coauto.tailcat.core.config.ToolSettings
+import cc.coauto.tailcat.core.creds.ClientIdentityStore
 import cc.coauto.tailcat.core.creds.CredentialStore
 import cc.coauto.tailcat.core.creds.MemoryCredentialStore
 import cc.coauto.tailcat.core.model.ConnectionState
@@ -65,6 +66,10 @@ public object DemoEnvironment {
         override suspend fun run(command: Command, onOutput: (String) -> Unit): CommandResult {
             delay(100)
             val args = command.arguments
+            // 演示模式：客户端身份一律视为已存在，既不生成文件也不真的读密钥。
+            if (args.getOrNull(1) == "printpub" || args.firstOrNull() == "genkey") {
+                return CommandResult(output = "nodekey:" + "0".repeat(63) + "1\n")
+            }
             if (args.contains("get-state")) {
                 return if (args.any { it.endsWith(":5557") }) {
                     CommandResult(exitCode = 1, output = "error: device unauthorized\n")
@@ -77,7 +82,7 @@ public object DemoEnvironment {
                     output = "E245（示例）\nantora-demo\n11\nDEMO-ONLY\nuid=0(root) gid=0(root)\n",
                 )
             }
-            if (args.firstOrNull() == "ping") {
+            if (args.getOrNull(0) == "ping" || args.getOrNull(1) == "ping") {
                 return CommandResult(output = "pong in 18ms via DERP(example)\n")
             }
             onOutput("示例任务正在执行，目标 ${args.drop(1).firstOrNull() ?: ""}\n")
@@ -120,6 +125,8 @@ public object DemoEnvironment {
             executablePath: String,
             runner: CommandExecuting,
             reservations: PortReservations,
+            deviceId: String,
+            identities: ClientIdentityStore,
         ): ForwardTransport = DemoTransport()
         override suspend fun readLegacyAddressBook(root: String): LegacyImport =
             throw cc.coauto.tailcat.core.model.ManagerException("演示模式不读取真实地址簿")
@@ -142,6 +149,8 @@ public object DemoEnvironment {
             Command(executablePath, listOf("-s", serial, "push", local, remote), timeoutMillis)
         override fun pullCommand(serial: String, remote: String, local: String, timeoutMillis: Long) =
             Command(executablePath, listOf("-s", serial, "pull", remote, local), timeoutMillis)
+        override fun forwardCommand(serial: String, local: String, remote: String) =
+            Command(executablePath, listOf("-s", serial, "forward", local, remote))
     }
 
     public fun makeManager(): SessionManager {

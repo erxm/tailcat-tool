@@ -4,6 +4,7 @@ import cc.coauto.tailcat.core.adb.AdbClient
 import cc.coauto.tailcat.core.adb.ProcessAdbClient
 import cc.coauto.tailcat.core.config.LegacyEntry
 import cc.coauto.tailcat.core.config.LegacyImport
+import cc.coauto.tailcat.core.creds.ClientIdentityStore
 import cc.coauto.tailcat.core.proc.CommandExecuting
 import cc.coauto.tailcat.core.session.ArchiveFetcher
 import cc.coauto.tailcat.core.session.PlatformServices
@@ -44,7 +45,9 @@ public class WindowsPlatformServices(
         executablePath: String,
         runner: CommandExecuting,
         reservations: PortReservations,
-    ): ForwardTransport = TailcatTransport(executablePath, runner, reservations)
+        deviceId: String,
+        identities: ClientIdentityStore,
+    ): ForwardTransport = TailcatTransport(executablePath, runner, reservations, identities, deviceId)
 
     override suspend fun readLegacyAddressBook(root: String): LegacyImport {
         val (entries, skipped) = LegacyAddressBookReader.read(root)

@@ -1,0 +1,34 @@
+scrcpy 4.1 <https://github.com/Genymobile/scrcpy>
+INFO: ADB device found:
+INFO:           (usb)  82a961ba                        device  2211133C
+INFO:     --> (tcpip)  127.0.0.1:5565                  device  2211133C
+INFO:         (tcpip)  192.168.2.123:5555              device  2512BPNDAC
+INFO:         (tcpip)  192.168.2.176:5555              device  2211133C
+DEBUG: Device serial: 127.0.0.1:5565
+DEBUG: Using server (portable): C:\Users\S15\AppData\Local\Microsoft\WinGet\Packages\Genymobile.scrcpy_Microsoft.Winget.Source_8wekyb3d8bbwe\scrcpy-win64-v4.1\scrcpy-server
+C:\Users\S15\AppData\Local\Microsoft\WinGet\Packages\Genymobile.scrcpy_Microsoft.Winget.Source_8wekyb3d8bbwe\scrcpy-win64-v4.1\scrcpy-server: 1 file pushed, 0 skipped. 405.6 MB/s (733706 bytes in 0.002s)
+[server] INFO: Device: [Xiaomi] Xiaomi 2211133C (Android 17)
+DEBUG: Server connected
+DEBUG: Starting controller thread
+DEBUG: Starting receiver thread
+INFO: Recording started to mp4 file: /tmp/ref_mix5.mp4
+[server] DEBUG: Using video encoder: 'c2.qti.avc.encoder'
+[server] DEBUG: Video codec size alignment requirement: 2px
+[server] DEBUG: Display: using DisplayManager API
+INFO: Renderer: direct3d11
+DEBUG: Trilinear filtering disabled (not an OpenGL renderer)
+DEBUG: Using icon (portable): C:\Users\S15\AppData\Local\Microsoft\WinGet\Packages\Genymobile.scrcpy_Microsoft.Winget.Source_8wekyb3d8bbwe\scrcpy-win64-v4.1\scrcpy.png
+DEBUG: Demuxer 'video': starting thread
+INFO: Texture: 1116x2480
+INFO: Time limit reached
+DEBUG: Quit...
+DEBUG: Controller stopped
+DEBUG: Receiver stopped
+DEBUG: Demuxer 'video': end of frames
+INFO: Recording complete to mp4 file: /tmp/ref_mix5.mp4
+DEBUG: Recorder thread ended
+[server] DEBUG: Controller stopped
+[server] DEBUG: Device message sender stopped
+[server] DEBUG: Screen streaming stopped
+DEBUG: Server disconnected
+DEBUG: Server terminated

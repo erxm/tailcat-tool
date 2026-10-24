@@ -1,5 +1,7 @@
 package cc.coauto.tailcat.core.transport
 
+import cc.coauto.tailcat.core.creds.ClientIdentityRole
+import cc.coauto.tailcat.core.creds.ClientIdentityStore
 import cc.coauto.tailcat.core.creds.Credentials
 import cc.coauto.tailcat.core.creds.OutputRedactor
 import cc.coauto.tailcat.core.model.managerError
@@ -59,6 +61,8 @@ public class TailcatTransport(
     private val executable: String,
     private val runner: CommandExecuting,
     private val reservations: PortReservations,
+    private val identities: ClientIdentityStore,
+    private val deviceId: String,
 ) : ForwardTransport {
 
     private class Startup {
@@ -81,13 +85,18 @@ public class TailcatTransport(
     ): ForwardConnection {
         val auto = preferredPort == null
         val candidates: List<Int> = preferredPort?.let { listOf(it) } ?: (5556..5655).toList()
+        // 显式指定身份：不给 `--key` 的话，tailcat 会用已落盘的默认客户端密钥，
+        // 多个并发转发就共享同一个 node key 抢 DERP 路径；没有默认密钥时又退回临时密钥，
+        // 每次重连都换一个身份。两种都不是我们要的。
+        // 只取一次：换端口重试时身份当然还是同一个，犯不着反复去读密钥文件。
+        val identity = identities.argument(executable, deviceId, ClientIdentityRole.Connection)
         for (candidate in candidates) {
             coroutineContext.ensureActive()
             if (!reservations.reserve(candidate)) {
                 if (!auto) managerError("本地端口 $candidate 已由另一会话使用或正在释放")
                 continue
             }
-            when (val attempt = attempt(candidate, address, remotePort, auto, onLog, onExit)) {
+            when (val attempt = attempt(candidate, address, remotePort, auto, identity, onLog, onExit)) {
                 is Attempt.Success -> return attempt.connection
                 is Attempt.AddressInUse -> continue // 自动分配：端口被别的程序占用，换下一个候选
                 is Attempt.Failure -> managerError(attempt.detail)
@@ -101,6 +110,7 @@ public class TailcatTransport(
         address: String,
         remotePort: Int,
         auto: Boolean,
+        identity: String,
         onLog: (String) -> Unit,
         onExit: (Int) -> Unit,
     ): Attempt {
@@ -108,7 +118,7 @@ public class TailcatTransport(
         val redactor = OutputRedactor(address)
         val command = Command(
             executable = executable,
-            arguments = listOf("forward", "--bind=127.0.0.1", address, "$candidate:$remotePort"),
+            arguments = listOf(identity, "forward", "--bind=127.0.0.1", address, "$candidate:$remotePort"),
         )
         val handle: RunningProcess = try {
             runner.start(

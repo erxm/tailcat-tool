@@ -80,7 +80,6 @@ compose.desktop {
             modules("java.base", "java.desktop", "java.logging", "jdk.crypto.ec", "jdk.unsupported")
 
             // exe/msi 安装包的升级标识。**必须固定不变**：换了值，新版会被当成另一个应用装成两份。
-            // 只在 exe / msi 这两种 targetFormats 下用到。
             windows {
                 // exe 的图标（任务栏、开始菜单、桌面快捷方式都取它）。
                 // 不指定的话 jpackage 会塞一个自带的黑白默认图标，跟运行时的窗口/托盘图标对不上。
@@ -88,7 +87,7 @@ compose.desktop {
                 // 换了原图重跑：java desktop/icons/GenerateIcon.java
                 iconFile.set(project.file("icons/TailcatManager.ico"))
 
-                // 装到 %LOCALAPPDATA%\Programs，不需要管理员权限——虚拟机里测试最省事。
+                // 装到 %LOCALAPPDATA%\Programs，不需要管理员权限。
                 perUserInstall = true
                 dirChooser = true
                 shortcut = true

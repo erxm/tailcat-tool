@@ -4,6 +4,7 @@ import cc.coauto.tailcat.core.adb.AdbClient
 import cc.coauto.tailcat.core.adb.ProcessAdbClient
 import cc.coauto.tailcat.core.config.ConfigurationStore
 import cc.coauto.tailcat.core.config.LegacyImport
+import cc.coauto.tailcat.core.creds.ClientIdentityStore
 import cc.coauto.tailcat.core.creds.CredentialStore
 import cc.coauto.tailcat.core.creds.MemoryCredentialStore
 import cc.coauto.tailcat.core.model.ManagerException
@@ -108,6 +109,9 @@ class FakeRunner : CommandExecuting {
     var operationDelayMillis: Long = 0
     var onDisconnect: ((String) -> Unit)? = null
 
+    /** 已「落盘」的客户端身份名，供 `printpub` / `genkey` 模拟用（与真实 tailcat 语义对齐）。 */
+    val clientKeys = mutableSetOf<String>()
+
     override suspend fun start(
         command: Command,
         onOutput: (String) -> Unit,
@@ -119,6 +123,25 @@ class FakeRunner : CommandExecuting {
         calls += args
         if (args.firstOrNull() == "disconnect" && args.size > 1) onDisconnect?.invoke(args[1])
         if (args.firstOrNull() in listOf("parse", "connect", "disconnect")) return CommandResult()
+        // `--key=<名字> printpub`：真实 tailcat 在名字不存在时非零退出，
+        // 身份已落盘时打印 `nodekey:<64 hex>`。
+        if (args.firstOrNull()?.startsWith("--key=") == true && args.getOrNull(1) == "printpub") {
+            val name = args[0].removePrefix("--key=")
+            return if (name in clientKeys) {
+                CommandResult(output = "nodekey:" + "0".repeat(63) + "1\n")
+            } else {
+                CommandResult(exitCode = 1, output = "open $name.private.json: no such file\n")
+            }
+        }
+        // `genkey --client --key=<名字>`：**不带 --force 时拒绝覆盖**，和真实程序一致。
+        if (args.firstOrNull() == "genkey") {
+            val name = args.firstOrNull { it.startsWith("--key=") }?.removePrefix("--key=").orEmpty()
+            return if (clientKeys.add(name)) {
+                CommandResult(output = "nodekey:" + "0".repeat(63) + "1\n")
+            } else {
+                CommandResult(exitCode = 1, output = "$name already exists; use --force to overwrite\n")
+            }
+        }
         if (args.contains("get-state")) {
             val serial = args.getOrNull(args.indexOf("-s") + 1).orEmpty()
             return if (serial in unauthorized) {
@@ -130,7 +153,8 @@ class FakeRunner : CommandExecuting {
         if (args.any { it.contains("getprop ro.product.model") }) {
             return CommandResult(output = "TestModel\nproduct\n11\nSERIAL-TEST\nuid=2000(shell)\n")
         }
-        if (args.firstOrNull() == "ping") {
+        // ping 现在带 `--key=<身份>` 前缀，所以要按位置找裸子命令而不是只看第一个参数。
+        if (args.getOrNull(0) == "ping" || args.getOrNull(1) == "ping") {
             return CommandResult(output = "pong in 12.3ms via DERP(test)\n")
         }
         if (operationDelayMillis > 0) delay(operationDelayMillis)
@@ -194,6 +218,8 @@ class TestServices(
         executablePath: String,
         runner: CommandExecuting,
         reservations: PortReservations,
+        deviceId: String,
+        identities: ClientIdentityStore,
     ): ForwardTransport = transport
 
     override suspend fun readLegacyAddressBook(root: String): LegacyImport = addressBook()
