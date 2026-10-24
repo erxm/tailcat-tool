@@ -1,0 +1,41 @@
+# Build outputs and local editor state
+.build/
+.swiftpm/
+dist/
+.DS_Store
+*.xcuserstate
+
+# Local connection state and credentials
+.env
+.env.*
+configuration.json
+*credentials*.json
+*secrets*.json
+.local/
+.state/
+.config/
+.ssh/
+tailcat-adb/
+tailcat/
+users/
+bridges/
+*.pid
+*.log
+
+# Private keys, exported certificates and signing material
+id_rsa
+id_ed25519
+id_ecdsa
+id_dsa
+*.key
+*.pem
+*.p8
+*.p12
+*.pfx
+*.pub
+*.keystore
+*.jks
+*.keychain
+*.keychain-db
+keychain-password
+*.mobileprovision
