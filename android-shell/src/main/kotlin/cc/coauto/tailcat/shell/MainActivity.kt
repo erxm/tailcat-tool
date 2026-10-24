@@ -66,6 +66,7 @@ import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import androidx.core.view.WindowCompat
 import cc.coauto.tailcat.shell.manager.ManagerModel
+import cc.coauto.tailcat.shell.ui.TailcatTheme
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.withContext
@@ -108,7 +109,7 @@ class MainActivity : ComponentActivity() {
         WindowCompat.getInsetsController(window, window.decorView)
             .isAppearanceLightStatusBars = !night
         setContent {
-            MiuixTheme {
+            TailcatTheme {
                 TailcatApp(this)
             }
         }
