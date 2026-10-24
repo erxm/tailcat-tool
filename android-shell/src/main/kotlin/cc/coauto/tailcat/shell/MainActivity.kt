@@ -330,20 +330,9 @@ internal fun ShellScreen(context: Context) {
                 trailing = RowTrailing.Chevron,
                 onClick = { showLog = !showLog },
             )
-            SettingRow(
-                title = "清空日志",
-                trailing = RowTrailing.Chevron,
-                onClick = { TailcatServer.clearLog(context) },
-            )
-        }
-
-        AnimatedVisibility(
-            visible = showLog,
-            enter = fadeIn(tween(TRANSITION_MS)) + expandVertically(tween(TRANSITION_MS)),
-            exit = fadeOut(tween(TRANSITION_MS)) + shrinkVertically(tween(TRANSITION_MS)),
-        ) {
-            val lines = if (liveLog.isNotEmpty()) liveLog else TailcatServer.readLog(context)
-            GroupCard(Modifier.padding(top = Dimens.CardGap)) {
+            // 日志就在这一行下面展开，和「编辑设备」等展开项保持同一套规矩
+            if (showLog) {
+                val lines = if (liveLog.isNotEmpty()) liveLog else TailcatServer.readLog(context)
                 Column(Modifier.fillMaxWidth().padding(Dimens.CardInner)) {
                     if (lines.isEmpty()) {
                         Text("暂无日志", style = styles.footnote1, color = colors.onSurfaceVariantSummary)
@@ -359,6 +348,11 @@ internal fun ShellScreen(context: Context) {
                     }
                 }
             }
+            SettingRow(
+                title = "清空日志",
+                trailing = RowTrailing.Chevron,
+                onClick = { TailcatServer.clearLog(context) },
+            )
         }
 
         notice?.let { message ->

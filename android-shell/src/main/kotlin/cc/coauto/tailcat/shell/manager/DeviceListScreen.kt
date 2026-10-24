@@ -52,6 +52,9 @@ import top.yukonga.miuix.kmp.theme.MiuixTheme
 /** 与 AppRoot 统一的过渡时长。 */
 private const val TRANSITION_MS = 320
 
+/** 添加表单展开在哪一行下面。 */
+private enum class AddMode { Persistent, Temporary }
+
 /**
  * 设备列表：管理端的入口页。
  *
@@ -77,11 +80,11 @@ fun DeviceListScreen(
     val scope = rememberCoroutineScope()
 
     val allDevices = profiles + temporary
-    var adding by remember { mutableStateOf(false) }
-    var temporaryMode by remember { mutableStateOf(false) }
+    // 表单挂在**哪一行**下面：字符串是模式名，点同一行再点一次即收起。
+    var adding by remember { mutableStateOf<AddMode?>(null) }
 
     // 表单展开时，返回键先收起表单。软键盘弹着的话系统会先吃掉第一次返回，所以不会误触。
-    BackHandler(enabled = adding) { adding = false }
+    BackHandler(enabled = adding != null) { adding = null }
 
     val testing = reachability.any {
         it.state == ReachabilityState.Testing || it.state == ReachabilityState.Queued
@@ -115,15 +118,23 @@ fun DeviceListScreen(
                 summary = "填写 tc 地址，保存后自动连接",
                 icon = ImageVector.vectorResource(TailcatIcons.Install),
                 trailing = RowTrailing.Chevron,
-                onClick = { adding = !adding; temporaryMode = false },
+                onClick = { adding = if (adding == AddMode.Persistent) null else AddMode.Persistent },
             )
+            // 表单紧贴触发它的那一行展开，而不是掉到整组的末尾 ——
+            // 否则点了「临时连接」却要往上看一大截才知道展开了什么。
+            if (adding == AddMode.Persistent) {
+                DeviceEditorCard(manager, profile = null, temporary = false, onDone = { adding = null }, embedded = true)
+            }
             SettingRow(
                 title = "临时连接",
                 summary = "不写入配置，关掉应用即消失",
                 icon = ImageVector.vectorResource(TailcatIcons.Link),
                 trailing = RowTrailing.Chevron,
-                onClick = { adding = true; temporaryMode = true },
+                onClick = { adding = if (adding == AddMode.Temporary) null else AddMode.Temporary },
             )
+            if (adding == AddMode.Temporary) {
+                DeviceEditorCard(manager, profile = null, temporary = true, onDone = { adding = null }, embedded = true)
+            }
             SettingRow(
                 title = "测试全部设备",
                 summary = "只 ping，不建转发、不 connect",
@@ -139,21 +150,6 @@ fun DeviceListScreen(
                 trailing = RowTrailing.Chevron,
                 onClick = { scope.launch { runCatching { manager.disconnectAll() } } },
             )
-        }
-
-        AnimatedVisibility(
-            visible = adding,
-            enter = fadeIn(tween(TRANSITION_MS)) + expandVertically(tween(TRANSITION_MS)),
-            exit = fadeOut(tween(TRANSITION_MS)) + shrinkVertically(tween(TRANSITION_MS)),
-        ) {
-            Column(Modifier.padding(top = Dimens.CardGap)) {
-                DeviceEditorCard(
-                    manager = manager,
-                    profile = null,
-                    temporary = temporaryMode,
-                    onDone = { adding = false },
-                )
-            }
         }
 
         notice?.let { message ->

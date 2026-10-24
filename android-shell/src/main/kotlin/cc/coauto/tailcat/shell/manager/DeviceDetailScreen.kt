@@ -377,6 +377,22 @@ fun DeviceDetailScreen(
                 enabled = session.serial == null && !session.state.isBusy,
                 onClick = { editing = !editing },
             )
+            // 表单就长在这一行下面（不再掉到分组底部）
+            if (editing) {
+                DeviceEditorCard(
+                    manager = manager,
+                    profile = profile,
+                    temporary = temporary,
+                    embedded = true,
+                    onDone = {
+                        editing = false
+                        // 概览里的地址读的是快照，改完得重新取一次
+                        scope.launch {
+                            address = runCatching { manager.addressForEditing(deviceId) }.getOrNull()
+                        }
+                    },
+                )
+            }
             if (temporary) {
                 SettingRow(
                     title = "保存到我的设备",
@@ -411,26 +427,6 @@ fun DeviceDetailScreen(
             )
         }
 
-        AnimatedVisibility(
-            visible = editing,
-            enter = fadeIn(tween(TRANSITION_MS)) + expandVertically(tween(TRANSITION_MS)),
-            exit = fadeOut(tween(TRANSITION_MS)) + shrinkVertically(tween(TRANSITION_MS)),
-        ) {
-            Column(Modifier.padding(top = Dimens.CardGap)) {
-                DeviceEditorCard(
-                    manager = manager,
-                    profile = profile,
-                    temporary = temporary,
-                    onDone = {
-                        editing = false
-                        // 概览里的地址读的是快照，改完得重新取一次
-                        scope.launch {
-                            address = runCatching { manager.addressForEditing(deviceId) }.getOrNull()
-                        }
-                    },
-                )
-            }
-        }
     }
 }
 

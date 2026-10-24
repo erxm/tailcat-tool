@@ -35,6 +35,7 @@ import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.basic.TextButton
 import top.yukonga.miuix.kmp.basic.TextField
 import top.yukonga.miuix.kmp.theme.MiuixTheme
+import cc.coauto.tailcat.shell.ui.Dimens
 
 /**
  * 设备编辑器：新增与编辑共用同一张卡。
@@ -65,6 +66,11 @@ fun DeviceEditorCard(
     profile: DeviceProfile?,
     temporary: Boolean,
     onDone: () -> Unit,
+    /**
+     * 嵌在分组卡的某一行**正下方**时置 true：
+     * 不再套一层 `Card`（那就成了卡片套卡片），也省掉 `SmallTitle` —— 上面那一行已经把标题说清楚了。
+     */
+    embedded: Boolean = false,
 ) {
     val colors = MiuixTheme.colorScheme
     val styles = MiuixTheme.textStyles
@@ -96,19 +102,21 @@ fun DeviceEditorCard(
         loadingAddress = false
     }
 
-    Card(modifier = Modifier.fillMaxWidth()) {
+    val form: @Composable () -> Unit = {
         Column(
-            Modifier.fillMaxWidth().padding(vertical = 10.dp),
+            Modifier.fillMaxWidth().padding(vertical = if (embedded) Dimens.RowVertical else 10.dp),
             verticalArrangement = Arrangement.spacedBy(10.dp),
         ) {
-            SmallTitle(
-                when {
-                    temporary && !editing -> "临时连接"
-                    temporary -> "编辑临时设备"
-                    editing -> "编辑设备"
-                    else -> "添加设备"
-                },
-            )
+            if (!embedded) {
+                SmallTitle(
+                    when {
+                        temporary && !editing -> "临时连接"
+                        temporary -> "编辑临时设备"
+                        editing -> "编辑设备"
+                        else -> "添加设备"
+                    },
+                )
+            }
             when {
                 temporary && !editing -> Text(
                     "临时设备不写进配置，凭据只留在内存里；关掉应用或重启手机就没了。" +
@@ -232,6 +240,13 @@ fun DeviceEditorCard(
                 TextButton(text = "取消", enabled = !busy, onClick = onDone)
             }
         }
+    }
+
+    if (embedded) {
+        // 左右各缩一个卡内边距，与同组的行文字对齐
+        Box(Modifier.fillMaxWidth().padding(horizontal = Dimens.CardInner)) { form() }
+    } else {
+        Card(modifier = Modifier.fillMaxWidth()) { form() }
     }
 
     if (scanning) {
