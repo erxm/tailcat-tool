@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 手绘线性图标：24dp 画布、1.7 描边、round 端点；颜色由 Icon(tint=…) 覆盖。 -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+    <path
+        android:pathData="M7.5 3 H16.5 A1.5 1.5 0 0 1 18 4.5 V19.5 A1.5 1.5 0 0 1 16.5 21 H7.5 A1.5 1.5 0 0 1 6 19.5 V4.5 A1.5 1.5 0 0 1 7.5 3 Z M10.5 18 H13.5"
+        android:strokeColor="#FF000000"
+        android:strokeWidth="1.7"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round"
+        android:fillColor="#00000000" />
+</vector>

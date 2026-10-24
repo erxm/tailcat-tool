@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.windowInsetsPadding
@@ -21,26 +22,45 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.unit.dp
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.res.vectorResource
 import cc.coauto.tailcat.shell.manager.DeviceConsoleScreen
 import cc.coauto.tailcat.shell.manager.DeviceDetailScreen
 import cc.coauto.tailcat.shell.manager.DeviceListScreen
+import cc.coauto.tailcat.shell.manager.HomeScreen
 import cc.coauto.tailcat.shell.manager.ManagerModel
+import cc.coauto.tailcat.shell.manager.SettingsScreen
 import cc.coauto.tailcat.shell.screen.ScreenControlScreen
-import top.yukonga.miuix.kmp.basic.TabRow
+import cc.coauto.tailcat.shell.ui.Dimens
+import cc.coauto.tailcat.shell.ui.TailcatIcons
+import kotlinx.coroutines.launch
+import top.yukonga.miuix.kmp.basic.NavigationBar
+import top.yukonga.miuix.kmp.basic.NavigationBarItem
 import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 
-/** 两个角色：把自己的 ADB 暴露出去，或者去连别的设备。 */
-private val ROLE_TITLES = listOf("服务端", "设备")
-
 private const val TRANSITION_MS = 320
 
+/** 底部导航的四档，顺序即下标。 */
+private val TABS = listOf("首页", "设备", "服务端", "设置")
+
+private const val TAB_HOME = 0
+private const val TAB_DEVICES = 1
+private const val TAB_SERVER = 2
+private const val TAB_SETTINGS = 3
+
 /**
- * 应用外壳：顶部一个角色切换，下面挂两个界面。
+ * 应用外壳：底部四档导航，每一档挂一个界面。
+ *
+ * 改动要点（原先是顶部一个两档 TabRow）：
+ *  - 顶部 tab 改成**底部导航**，与参照应用一致 —— 手上够得着，且不再跟页面标题抢视线；
+ *  - **每张全屏页面都提到这一层**：投屏、Shell 窗口有自己的 `BackHandler`，不再嵌在某档里
+ *    （Shell 窗口原先嵌在设备档内，底部导航一加就会把终端区顶掉，输入法弹起时更明显）；
+ *  - 返回键的语义按层来：全屏页 → 退出全屏；设备详情 → 回列表；非首页 → 回首页；首页 → 交给系统退出。
  *
  * `ManagerModel` 是进程级单例，这里只是取一下 —— 转屏、分屏导致 Activity 重建时，
  * 已经连上的会话、正在跑的任务都不会被推倒重来。
@@ -49,16 +69,21 @@ private const val TRANSITION_MS = 320
 fun TailcatApp(context: Context) {
     val colors = MiuixTheme.colorScheme
     val model = remember(context) { ManagerModel.get(context) }
-    var roleIndex by rememberSaveable { mutableIntStateOf(0) }
+    val scope = rememberCoroutineScope()
+
+    var tab by rememberSaveable { mutableIntStateOf(TAB_HOME) }
+    var openId by rememberSaveable { mutableStateOf<String?>(null) }
+    var consoleId by rememberSaveable { mutableStateOf<String?>(null) }
     var screenDeviceId by rememberSaveable { mutableStateOf<String?>(null) }
 
     // 首启时导入既有地址簿；没有地址簿就什么都不做。
     // startup() 内部已经吞了导入失败，这里再兜一层，避免地址簿异常把整个界面拖崩。
     LaunchedEffect(Unit) { runCatching { model.startup() } }
 
-    // 屏幕控制要**独占整屏**，所以它在 TabRow 那一层 Column 之外渲染 ——
-    // 嵌在里面的话顶部会一直挂着两个 tab，而且根布局的 safeDrawing 内边距也会把画面挤小。
+    // 屏幕控制要**独占整屏**（自己还会隐藏系统栏），所以放在导航之外、直接 return。
+    // 它以前没有 BackHandler，按返回会一路退出 Activity —— 这里补上。
     screenDeviceId?.let { deviceId ->
+        BackHandler { screenDeviceId = null }
         ScreenControlScreen(
             model = model,
             deviceId = deviceId,
@@ -67,65 +92,104 @@ fun TailcatApp(context: Context) {
         return
     }
 
+    // Shell 窗口同样独占整屏：底部导航 + 输入法会把终端区挤没。
+    consoleId?.takeIf { model.manager.profile(it) != null }?.let { id ->
+        BackHandler { consoleId = null }
+        Box(
+            Modifier
+                .fillMaxSize()
+                .background(colors.background)
+                .windowInsetsPadding(WindowInsets.safeDrawing),
+        ) {
+            DeviceConsoleScreen(
+                manager = model.manager,
+                deviceId = id,
+                deviceName = model.manager.profile(id)?.name ?: "设备",
+                onBack = { consoleId = null },
+            )
+        }
+        return
+    }
+
+    BackHandler(enabled = openId != null || tab != TAB_HOME) {
+        when {
+            openId != null -> openId = null
+            else -> tab = TAB_HOME
+        }
+    }
+
     Column(
         Modifier
             .fillMaxSize()
             .background(colors.background)
             .windowInsetsPadding(WindowInsets.safeDrawing),
     ) {
-        TabRow(
-            tabs = ROLE_TITLES,
-            selectedTabIndex = roleIndex,
-            onTabSelected = { roleIndex = it },
-            modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 4.dp),
-        )
         Box(Modifier.weight(1f)) {
-            AnimatedContent(
-                targetState = roleIndex,
-                transitionSpec = {
-                    fadeIn(tween(TRANSITION_MS)) togetherWith fadeOut(tween(TRANSITION_MS))
-                },
-                label = "role",
-            ) { index ->
-                if (index == 0) {
-                    ShellScreen(context)
-                } else {
-                    DevicesScreen(model, onOpenScreen = { screenDeviceId = it })
-                }
+            when (tab) {
+                TAB_HOME -> HomeScreen(
+                    model = model,
+                    onOpenDevices = { tab = TAB_DEVICES },
+                    onOpenServer = { tab = TAB_SERVER },
+                )
+                TAB_DEVICES -> DevicesScreen(
+                    model = model,
+                    openId = openId,
+                    onOpen = { openId = it },
+                    onOpenScreen = { screenDeviceId = it },
+                    onOpenConsole = { consoleId = it },
+                )
+                TAB_SERVER -> ShellScreen(context)
+                else -> SettingsScreen(
+                    context = context,
+                    model = model,
+                    onRelocateTools = { scope.launch { model.relocateTools() } },
+                )
             }
+        }
+        NavigationBar(Modifier.fillMaxWidth()) {
+            NavigationBarItem(
+                selected = tab == TAB_HOME,
+                onClick = { tab = TAB_HOME },
+                icon = ImageVector.vectorResource(TailcatIcons.Home),
+                label = TABS[TAB_HOME],
+            )
+            NavigationBarItem(
+                selected = tab == TAB_DEVICES,
+                onClick = { tab = TAB_DEVICES },
+                icon = ImageVector.vectorResource(TailcatIcons.Devices),
+                label = TABS[TAB_DEVICES],
+            )
+            NavigationBarItem(
+                selected = tab == TAB_SERVER,
+                onClick = { tab = TAB_SERVER },
+                icon = ImageVector.vectorResource(TailcatIcons.Server),
+                label = TABS[TAB_SERVER],
+            )
+            NavigationBarItem(
+                selected = tab == TAB_SETTINGS,
+                onClick = { tab = TAB_SETTINGS },
+                icon = ImageVector.vectorResource(TailcatIcons.Settings),
+                label = TABS[TAB_SETTINGS],
+            )
         }
     }
 }
 
-/** 设备页的返回栈：列表 ⇄ 详情 ⇄ Shell 窗口。 */
+/** 设备档：列表 ⇄ 详情。Shell 窗口与投屏都由上层接管，不在这里。 */
 @Composable
-private fun DevicesScreen(model: ManagerModel, onOpenScreen: (String) -> Unit) {
+private fun DevicesScreen(
+    model: ManagerModel,
+    openId: String?,
+    onOpen: (String?) -> Unit,
+    onOpenScreen: (String) -> Unit,
+    onOpenConsole: (String) -> Unit,
+) {
     val colors = MiuixTheme.colorScheme
-    var openId by rememberSaveable { mutableStateOf<String?>(null) }
-    var consoleId by rememberSaveable { mutableStateOf<String?>(null) }
     val manager = model.manager
-
-    // 系统返回键：逐层退，而不是直接退出应用。
-    // 桌面端没有这个键，移植时最容易漏的一处。不在栈里时不拦，交回系统（退出应用）。
-    BackHandler(enabled = consoleId != null || openId != null) {
-        if (consoleId != null) consoleId = null else openId = null
-    }
-
-    // Shell 窗口自己占一页。设备被删掉时 profile 会消失，这里一并回落，
-    // 免得停在一个查不到设备的空白控制台上。
-    consoleId?.takeIf { manager.profile(it) != null }?.let { id ->
-        DeviceConsoleScreen(
-            manager = manager,
-            deviceId = id,
-            deviceName = manager.profile(id)?.name ?: "设备",
-            onBack = { consoleId = null },
-        )
-        return
-    }
 
     // 配置读不出来时**不写盘**，界面得把原因说出来，否则用户只会看到「一台设备都没有」
     model.startupError?.let { message ->
-        Column(Modifier.fillMaxSize().padding(16.dp)) {
+        Column(Modifier.fillMaxSize().padding(Dimens.PagePadding)) {
             Text("配置读取失败：$message", color = colors.error, style = MiuixTheme.textStyles.body1)
             Text(
                 "这一轮不会写回配置，先把问题修好再重开。",
@@ -147,16 +211,15 @@ private fun DevicesScreen(model: ManagerModel, onOpenScreen: (String) -> Unit) {
         if (id == null) {
             DeviceListScreen(
                 manager = manager,
-                onRelocateTools = { model.relocateTools() },
-                onOpen = { openId = it },
+                onOpen = { onOpen(it) },
             )
         } else {
             DeviceDetailScreen(
                 manager = manager,
                 deviceId = id,
                 onOpenScreen = { onOpenScreen(id) },
-                onOpenConsole = { consoleId = id },
-                onBack = { openId = null },
+                onOpenConsole = { onOpenConsole(id) },
+                onBack = { onOpen(null) },
             )
         }
     }

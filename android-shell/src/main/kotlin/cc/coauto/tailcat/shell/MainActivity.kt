@@ -79,6 +79,15 @@ import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.basic.TextButton
 import top.yukonga.miuix.kmp.basic.TextField
 import top.yukonga.miuix.kmp.theme.MiuixTheme
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.res.vectorResource
+import cc.coauto.tailcat.shell.ui.BigTitleBar
+import cc.coauto.tailcat.shell.ui.Dimens
+import cc.coauto.tailcat.shell.ui.GroupCard
+import cc.coauto.tailcat.shell.ui.RowTrailing
+import cc.coauto.tailcat.shell.ui.SectionHeader
+import cc.coauto.tailcat.shell.ui.SettingRow
+import cc.coauto.tailcat.shell.ui.TailcatIcons
 
 /** 统一的过渡时长，避免各处动画节奏不一致。 */
 private const val TRANSITION_MS = 320
@@ -135,6 +144,9 @@ internal fun ShellScreen(context: Context) {
     var persistentKey by remember { mutableStateOf(Settings.persistentKey(context)) }
     var hasSavedKey by remember { mutableStateOf(TailcatServer.hasPersistentKey(context)) }
     var showLog by remember { mutableStateOf(false) }
+    var showQr by remember { mutableStateOf(false) }
+    // 地址一出现就展开二维码：扫码是这一步最常做的事
+    LaunchedEffect(state is ServerState.Running) { if (state is ServerState.Running) showQr = true }
     var notice by remember { mutableStateOf<String?>(null) }
 
     val permissionLauncher = rememberLauncherForActivityResult(
@@ -181,80 +193,93 @@ internal fun ShellScreen(context: Context) {
     Column(
         Modifier
             .fillMaxSize()
-            .background(colors.background)
             .verticalScroll(rememberScrollState())
-            .padding(start = 16.dp, end = 16.dp, top = 12.dp, bottom = 24.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp),
+            .padding(
+                start = Dimens.PagePadding,
+                end = Dimens.PagePadding,
+                bottom = Dimens.SectionGap,
+            ),
     ) {
-        Text("Tailcat 服务端", style = styles.title2, color = colors.onBackground)
+        BigTitleBar("服务端")
         Text(
-            "把本机端口通过 Tailcat 隧道暴露出去。默认 5555，即 adbd —— " +
-                "另一台机器就能通过 tc 地址连上这台手机的 ADB。",
+            "把本机端口通过 Tailcat 隧道暴露出去。默认 5555，即 adbd —— 另一台机器就能通过 tc 地址连上这台手机的 ADB。",
+            modifier = Modifier.padding(
+                start = Dimens.CardInner,
+                end = Dimens.CardInner,
+                bottom = Dimens.TitleToContent,
+            ),
             style = styles.footnote1,
             color = colors.onBackgroundVariant,
         )
 
         StatusCard(state, address, nowMillis, portStatus)
 
-        Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-            Button(
-                onClick = {
+        SectionHeader("服务")
+        GroupCard {
+            SettingRow(
+                title = "启动",
+                summary = "按下面填的端口暴露本机 ADB",
+                icon = ImageVector.vectorResource(TailcatIcons.Server),
+                enabled = !running,
+                trailing = RowTrailing.Action("启动") {
                     val parsed = Settings.ports(portsText)
                     if (parsed.isEmpty()) {
                         notice = "请先填写至少一个有效端口，例如 5555"
-                        return@Button
+                    } else {
+                        Settings.setPortsText(context, portsText)
+                        notice = null
+                        ContextCompat.startForegroundService(
+                            context,
+                            Intent(context, TailcatService::class.java).setAction(TailcatService.ACTION_START),
+                        )
                     }
-                    Settings.setPortsText(context, portsText)
-                    notice = null
-                    ContextCompat.startForegroundService(
-                        context,
-                        Intent(context, TailcatService::class.java).setAction(TailcatService.ACTION_START),
-                    )
                 },
-                enabled = !running,
-            ) { Text("启动") }
-
-            TextButton(
-                text = "停止",
-                onClick = {
+            )
+            SettingRow(
+                title = "停止",
+                summary = "断开隧道并停掉前台服务",
+                icon = ImageVector.vectorResource(TailcatIcons.Refresh),
+                enabled = running,
+                trailing = RowTrailing.Action("停止") {
                     TailcatServer.stop(context)
                     context.stopService(Intent(context, TailcatService::class.java))
                 },
-                enabled = running,
             )
-
-            AnimatedVisibility(
-                visible = address != null,
-                enter = fadeIn(tween(TRANSITION_MS)) + expandVertically(tween(TRANSITION_MS)),
-                exit = fadeOut(tween(TRANSITION_MS)) + shrinkVertically(tween(TRANSITION_MS)),
-            ) {
-                TextButton(
-                    text = "复制地址",
-                    onClick = {
-                        address?.let {
-                            clipboard.setText(AnnotatedString(it))
-                            notice = "地址已复制到剪贴板"
-                        }
-                    },
-                )
-            }
+            SettingRow(
+                title = "复制地址",
+                summary = address?.let { "tc 地址已生成" } ?: "启动后才有地址",
+                icon = ImageVector.vectorResource(TailcatIcons.Link),
+                enabled = address != null,
+                trailing = RowTrailing.Action("复制") {
+                    address?.let {
+                        clipboard.setText(AnnotatedString(it))
+                        notice = "地址已复制到剪贴板"
+                    }
+                },
+            )
+            SettingRow(
+                title = "二维码",
+                summary = "另一台手机扫码即可填入地址",
+                icon = ImageVector.vectorResource(TailcatIcons.Qr),
+                enabled = address != null,
+                trailing = RowTrailing.Value(if (showQr) "收起" else "展开"),
+                onClick = { showQr = !showQr },
+            )
         }
 
-        // 地址出现/消失时整块卡片淡入淡出，而不是突兀地跳出来
         AnimatedVisibility(
-            visible = address != null,
+            visible = showQr && address != null,
             enter = fadeIn(tween(TRANSITION_MS)) + expandVertically(tween(TRANSITION_MS)),
             exit = fadeOut(tween(TRANSITION_MS)) + shrinkVertically(tween(TRANSITION_MS)),
         ) {
             val shown = address.orEmpty()
             val qr = remember(shown) { if (shown.isEmpty()) null else QrCode.bitmap(shown, 720) }
-            Card(modifier = Modifier.fillMaxWidth()) {
+            GroupCard(Modifier.padding(top = Dimens.CardGap)) {
                 Column(
-                    Modifier.fillMaxWidth().padding(vertical = 8.dp),
+                    Modifier.fillMaxWidth().padding(Dimens.CardInner),
                     horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.spacedBy(10.dp),
+                    verticalArrangement = Arrangement.spacedBy(Dimens.CardGap),
                 ) {
-                    SmallTitle("扫码获取地址")
                     if (qr != null) {
                         Image(
                             bitmap = qr.asImageBitmap(),
@@ -269,50 +294,72 @@ internal fun ShellScreen(context: Context) {
             }
         }
 
-        SettingsCard(
-            context = context,
-            portsText = portsText,
-            onPortsChange = { portsText = it },
-            portsEnabled = !running,
-            persistentKey = persistentKey,
-            onPersistentChange = {
-                persistentKey = it
-                Settings.setPersistentKey(context, it)
-            },
-            hasSavedKey = hasSavedKey,
-            onForgetKey = {
-                TailcatServer.forgetPersistentKey(context)
-                hasSavedKey = false
-                notice = "已删除长期密钥；下次开启固定地址会生成一个新的（地址随之改变）"
-            },
-            autoStart = autoStart,
-            onAutoStartChange = {
-                autoStart = it
-                Settings.setAutoStart(context, it)
-            },
-        )
-
-        AnimatedVisibility(
-            visible = notice != null,
-            enter = fadeIn(tween(TRANSITION_MS)) + expandVertically(tween(TRANSITION_MS)),
-            exit = fadeOut(tween(TRANSITION_MS)) + shrinkVertically(tween(TRANSITION_MS)),
-        ) {
-            Text(notice.orEmpty(), style = styles.footnote1, color = colors.primary)
+        SectionHeader("端口与密钥")
+        GroupCard {
+            TextField(
+                value = portsText,
+                onValueChange = { portsText = it },
+                label = "要暴露的端口",
+                enabled = !running,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = Dimens.CardInner, vertical = Dimens.RowVertical),
+            )
+            SettingRow(
+                title = "固定地址",
+                summary = if (persistentKey) "用长期密钥，重启后地址不变" else "用临时密钥，重启后地址会变",
+                icon = ImageVector.vectorResource(TailcatIcons.Link),
+                trailing = RowTrailing.Toggle(persistentKey) {
+                    persistentKey = it
+                    Settings.setPersistentKey(context, it)
+                },
+            )
+            if (hasSavedKey) {
+                SettingRow(
+                    title = "删除长期密钥",
+                    summary = "下次开启固定地址会生成新的，地址随之改变",
+                    titleColor = colors.error,
+                    trailing = RowTrailing.Chevron,
+                    onClick = {
+                        TailcatServer.forgetPersistentKey(context)
+                        hasSavedKey = false
+                        notice = "已删除长期密钥；下次开启固定地址会生成一个新的（地址随之改变）"
+                    },
+                )
+            }
+            SettingRow(
+                title = "开机自启",
+                summary = "开机后自动把服务端拉起来",
+                icon = ImageVector.vectorResource(TailcatIcons.Refresh),
+                trailing = RowTrailing.Toggle(autoStart) {
+                    autoStart = it
+                    Settings.setAutoStart(context, it)
+                },
+            )
         }
 
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            TextButton(text = if (showLog) "收起日志" else "查看日志", onClick = { showLog = !showLog })
-            Spacer(Modifier.weight(1f))
-            TextButton(text = "清空", onClick = { TailcatServer.clearLog(context) })
+        SectionHeader("日志")
+        GroupCard {
+            SettingRow(
+                title = if (showLog) "收起日志" else "查看日志",
+                trailing = RowTrailing.Chevron,
+                onClick = { showLog = !showLog },
+            )
+            SettingRow(
+                title = "清空日志",
+                trailing = RowTrailing.Chevron,
+                onClick = { TailcatServer.clearLog(context) },
+            )
         }
+
         AnimatedVisibility(
             visible = showLog,
             enter = fadeIn(tween(TRANSITION_MS)) + expandVertically(tween(TRANSITION_MS)),
             exit = fadeOut(tween(TRANSITION_MS)) + shrinkVertically(tween(TRANSITION_MS)),
         ) {
             val lines = if (liveLog.isNotEmpty()) liveLog else TailcatServer.readLog(context)
-            Card(modifier = Modifier.fillMaxWidth()) {
-                Column(Modifier.padding(vertical = 8.dp)) {
+            GroupCard(Modifier.padding(top = Dimens.CardGap)) {
+                Column(Modifier.fillMaxWidth().padding(Dimens.CardInner)) {
                     if (lines.isEmpty()) {
                         Text("暂无日志", style = styles.footnote1, color = colors.onSurfaceVariantSummary)
                     } else {
@@ -329,14 +376,20 @@ internal fun ShellScreen(context: Context) {
             }
         }
 
-        HorizontalDivider()
-        SmallTitle("二进制")
-        Text(
-            TailcatServer.binaryDiagnostic(context),
-            style = styles.footnote2,
-            fontFamily = FontFamily.Monospace,
-            color = colors.onSurfaceVariantSummary,
-        )
+        notice?.let { message ->
+            SectionHeader("提示")
+            GroupCard {
+                SettingRow(title = message, trailing = RowTrailing.Action("知道了") { notice = null })
+            }
+        }
+
+        SectionHeader("诊断")
+        GroupCard {
+            SettingRow(
+                title = "二进制诊断",
+                summary = TailcatServer.binaryDiagnostic(context),
+            )
+        }
     }
 }
 
@@ -350,9 +403,9 @@ private fun StatusCard(
     val colors = MiuixTheme.colorScheme
     val styles = MiuixTheme.textStyles
 
-    Card(modifier = Modifier.fillMaxWidth()) {
+    Card(modifier = Modifier.fillMaxWidth(), cornerRadius = Dimens.CardRadius) {
         Column(
-            Modifier.fillMaxWidth().padding(vertical = 10.dp).animateContentSize(
+            Modifier.fillMaxWidth().padding(Dimens.CardInner).animateContentSize(
                 animationSpec = tween(TRANSITION_MS, easing = FastOutSlowInEasing),
             ),
             verticalArrangement = Arrangement.spacedBy(8.dp),
@@ -478,96 +531,6 @@ private fun StatusDot(state: ServerState) {
             .alpha(settled)
             .background(color, CircleShape),
     )
-}
-
-@Composable
-private fun SettingsCard(
-    context: Context,
-    portsText: String,
-    onPortsChange: (String) -> Unit,
-    portsEnabled: Boolean,
-    persistentKey: Boolean,
-    onPersistentChange: (Boolean) -> Unit,
-    hasSavedKey: Boolean,
-    onForgetKey: () -> Unit,
-    autoStart: Boolean,
-    onAutoStartChange: (Boolean) -> Unit,
-) {
-    val colors = MiuixTheme.colorScheme
-    val styles = MiuixTheme.textStyles
-
-    Card(modifier = Modifier.fillMaxWidth()) {
-        Column(
-            Modifier.fillMaxWidth().padding(vertical = 10.dp).animateContentSize(),
-            verticalArrangement = Arrangement.spacedBy(10.dp),
-        ) {
-            SmallTitle("设置")
-            TextField(
-                value = portsText,
-                onValueChange = onPortsChange,
-                label = "要暴露的端口（逗号分隔）",
-                enabled = portsEnabled,
-                modifier = Modifier.fillMaxWidth(),
-            )
-            Text(
-                "每个端口会被代理到本机 localhost 的同号端口",
-                style = styles.footnote2,
-                color = colors.onSurfaceVariantSummary,
-            )
-
-            HorizontalDivider()
-
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Switch(checked = persistentKey, onCheckedChange = onPersistentChange)
-                Spacer(Modifier.width(12.dp))
-                Column(Modifier.weight(1f)) {
-                    Text("固定地址（长期密钥）", style = styles.body1, color = colors.onSurface)
-                    Text(
-                        "打开后地址跨重启不变，电脑端只需填一次。代价是它变成一个长期有效的凭据——" +
-                            "临时密钥在服务端退出时即作废，这个不会。",
-                        style = styles.footnote2,
-                        color = if (persistentKey) colors.error else colors.onSurfaceVariantSummary,
-                    )
-                    AnimatedVisibility(
-                        visible = persistentKey,
-                        enter = fadeIn(tween(TRANSITION_MS)) + expandVertically(tween(TRANSITION_MS)),
-                        exit = fadeOut(tween(TRANSITION_MS)) + shrinkVertically(tween(TRANSITION_MS)),
-                    ) {
-                        Text(
-                            "⚠️ 已开启：切勿把这个地址贴到任何公开或半公开的地方",
-                            style = styles.footnote2,
-                            color = colors.error,
-                        )
-                    }
-                    if (hasSavedKey) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Text(
-                                "已保存长期密钥",
-                                style = styles.footnote2,
-                                color = colors.onSurfaceVariantSummary,
-                            )
-                            TextButton(text = "重新生成", onClick = onForgetKey)
-                        }
-                    }
-                }
-            }
-
-            HorizontalDivider()
-
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Switch(checked = autoStart, onCheckedChange = onAutoStartChange)
-                Spacer(Modifier.width(12.dp))
-                Column(Modifier.weight(1f)) {
-                    Text("开机自启", style = styles.body1, color = colors.onSurface)
-                    Text(
-                        "Android 12+ 对后台启动前台服务有限制，实际可能要解锁一次才生效",
-                        style = styles.footnote2,
-                        color = colors.onSurfaceVariantSummary,
-                    )
-                }
-            }
-        }
-    }
 }
 
 private fun statusLabel(state: ServerState): String = when (state) {

@@ -39,6 +39,7 @@ import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.dp
 import cc.coauto.tailcat.core.model.ConnectionState
+import cc.coauto.tailcat.shell.ui.StateDot
 import cc.coauto.tailcat.core.model.TaskState
 import cc.coauto.tailcat.core.model.managerError
 import cc.coauto.tailcat.core.session.SessionManager
@@ -54,6 +55,17 @@ import top.yukonga.miuix.kmp.basic.TextButton
 import top.yukonga.miuix.kmp.basic.TextField
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 import java.io.File
+import androidx.compose.foundation.background
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.res.vectorResource
+import cc.coauto.tailcat.shell.ui.Dimens
+import cc.coauto.tailcat.shell.ui.GroupCard
+import cc.coauto.tailcat.shell.ui.RowTrailing
+import cc.coauto.tailcat.shell.ui.SectionHeader
+import cc.coauto.tailcat.shell.ui.SettingRow
+import cc.coauto.tailcat.shell.ui.TailcatIcons
 
 /** 与 ShellScreen 统一的过渡时长。 */
 private const val TRANSITION_MS = 320
@@ -172,213 +184,177 @@ fun DeviceDetailScreen(
     }
 
     Column(
-        Modifier.fillMaxSize().verticalScroll(rememberScrollState())
-            .padding(start = 16.dp, end = 16.dp, top = 12.dp, bottom = 24.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp),
+        Modifier
+            .fillMaxSize()
+            .verticalScroll(rememberScrollState())
+            .padding(start = Dimens.PagePadding, end = Dimens.PagePadding, bottom = Dimens.SectionGap),
     ) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
+        // 子页面用紧凑标题（返回 + 设备名）：层级上它比 tab 页低一层，不该再撑一个大标题。
+        Row(
+            Modifier
+                .fillMaxWidth()
+                .padding(top = Dimens.PagePadding, bottom = Dimens.TitleToContent),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
             TextButton(text = "‹ 设备", onClick = onBack)
-            Spacer(Modifier.width(4.dp))
             Text(
                 (profile?.name ?: "设备") + if (temporary) "  ·  临时" else "",
                 style = styles.title2,
                 color = colors.onBackground,
-                modifier = Modifier.weight(1f),
+                modifier = Modifier.weight(1f).padding(start = 4.dp),
             )
         }
 
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            StateDot(session.state)
-            Spacer(Modifier.width(10.dp))
-            Text(
-                session.state.label + (session.serial?.let { "  ·  $it" } ?: ""),
-                style = styles.body1,
-                color = if (online) colors.primary else colors.onSurfaceVariantSummary,
-                modifier = Modifier.weight(1f),
-            )
-        }
+        DetailStatusCard(
+            state = session.state,
+            serial = session.serial,
+            online = online,
+            onToggle = {
+                if (session.serial == null) manager.connect(deviceId) else manager.disconnect(deviceId)
+            },
+        )
 
-        session.error?.let { Text(it, style = styles.footnote1, color = colors.error) }
-
-        Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-            if (session.serial == null) {
-                Button(
-                    enabled = !session.state.isBusy,
-                    onClick = { manager.connect(deviceId) },
-                ) { Text(if (session.state == ConnectionState.Connecting) "连接中…" else "连接") }
-            } else {
-                Button(
-                    enabled = !session.state.isBusy,
-                    onClick = { manager.disconnect(deviceId) },
-                ) { Text("断开") }
+        (session.error ?: fileError)?.let { message ->
+            GroupCard(Modifier.padding(top = Dimens.CardGap)) {
+                SettingRow(
+                    title = message,
+                    titleColor = colors.error,
+                    trailing = RowTrailing.Action("知道了") { fileError = null },
+                )
             }
-            TextButton(
-                text = "重新读取",
+        }
+
+        SectionHeader("连接")
+        GroupCard {
+            SettingRow(
+                title = "重新读取",
+                summary = "拉取型号 / 系统 / 执行身份",
+                icon = ImageVector.vectorResource(TailcatIcons.Refresh),
+                trailing = RowTrailing.Chevron,
                 enabled = online,
                 onClick = { manager.refreshDeviceInformation(deviceId) },
             )
-            TextButton(
-                text = "探测链路",
+            SettingRow(
+                title = "探测链路",
+                summary = session.route,
+                icon = ImageVector.vectorResource(TailcatIcons.Link),
+                trailing = RowTrailing.Chevron,
                 enabled = !session.state.isBusy,
                 onClick = { manager.diagnose(deviceId) },
             )
-        }
-
-        // 本地 ADB 入口在接线、写脚本时都要用，单独一行免得和上面几个挤成一团
-        Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-            TextButton(
-                text = "复制 ADB 入口",
+            SettingRow(
+                title = "复制 ADB 入口",
+                summary = session.serial ?: "尚未连接",
+                icon = ImageVector.vectorResource(TailcatIcons.Terminal),
                 enabled = session.serial != null,
-                onClick = {
+                trailing = RowTrailing.Action("复制") {
                     session.serial?.let {
                         clipboard.setText(AnnotatedString(it))
                         fileError = null
                     }
                 },
             )
-            // 改配置必须先断开：core 的 saveDevice 会拒绝在连着的时候改，界面上直接就不给点
-            TextButton(
-                text = if (temporary) "编辑临时设备" else "编辑设备",
-                enabled = session.serial == null && !session.state.isBusy,
-                onClick = { editing = !editing },
+            SettingRow(
+                title = "屏幕控制",
+                summary = "全屏投屏（应用内 scrcpy + 硬解）",
+                icon = ImageVector.vectorResource(TailcatIcons.Screen),
+                trailing = RowTrailing.Chevron,
+                enabled = online,
+                onClick = onOpenScreen,
             )
         }
 
-        // 屏幕控制：手机端不是调 scrcpy.exe（那是桌面程序），而是自带一份服务端推过去、
-        // 自己在进程里说 scrcpy 协议 + MediaCodec 硬解。要连着才能用。
-        TextButton(
-            text = "屏幕控制",
-            enabled = online,
-            onClick = onOpenScreen,
-        )
+        SectionHeader("设备信息")
+        GroupCard {
+            SettingRow("型号", trailing = RowTrailing.Value(session.model))
+            SettingRow("产品", trailing = RowTrailing.Value(session.product))
+            SettingRow("Android", trailing = RowTrailing.Value(session.android))
+            SettingRow("序列号", trailing = RowTrailing.Value(session.deviceSerial))
+            SettingRow("身份", trailing = RowTrailing.Value(session.identity))
+            SettingRow("链路", trailing = RowTrailing.Value(session.route))
+            address?.let { SettingRow("Tailcat 地址", trailing = RowTrailing.Value(maskedAddress(it))) }
+            profile?.preferredPort?.let { SettingRow("本地入口", trailing = RowTrailing.Value("127.0.0.1:$it")) }
+        }
 
-        AnimatedVisibility(
-            visible = editing,
-            enter = fadeIn(tween(TRANSITION_MS)) + expandVertically(tween(TRANSITION_MS)),
-            exit = fadeOut(tween(TRANSITION_MS)) + shrinkVertically(tween(TRANSITION_MS)),
-        ) {
-            DeviceEditorCard(
-                manager = manager,
-                profile = profile,
-                temporary = temporary,
-                onDone = {
-                    editing = false
-                    // 概览里的地址读的是快照，改完得重新取一次
-                    scope.launch {
-                        address = runCatching { manager.addressForEditing(deviceId) }.getOrNull()
-                    }
+        SectionHeader("Shell")
+        GroupCard {
+            // Shell 窗口把命令输入与**所有**本机任务（装包 / 上传 / 下载 / shell）的输出
+            // 合成一份连续的终端式日志，不再分散在任务列表里逐条展开。
+            SettingRow(
+                title = "打开 Shell 窗口",
+                summary = "命令与装包 / 上传 / 下载的输出按先后顺序流进同一份日志",
+                icon = ImageVector.vectorResource(TailcatIcons.Terminal),
+                trailing = RowTrailing.Chevron,
+                enabled = online,
+                onClick = onOpenConsole,
+            )
+        }
+
+        SectionHeader("安装")
+        GroupCard {
+            SettingRow(
+                title = "选择 APK 安装",
+                summary = if (online) "用系统文件选择器挑一个 APK" else "先连上设备才能装包",
+                icon = ImageVector.vectorResource(TailcatIcons.Install),
+                enabled = online && !busyInstalling,
+                // 用 */* 而不是 APK 的 MIME：不少文件管理器把 apk 标成
+                // application/octet-stream，按 APK MIME 过滤会让它们整个灰掉。
+                trailing = RowTrailing.Action(if (busyInstalling) "准备中…" else "选择") {
+                    pickApk.launch(arrayOf("*/*"))
                 },
             )
         }
 
-        Card(modifier = Modifier.fillMaxWidth()) {
-            Column(Modifier.fillMaxWidth().padding(vertical = 10.dp)) {
-                SmallTitle("概览")
-                InfoRow("型号", session.model)
-                InfoRow("产品", session.product)
-                InfoRow("Android", session.android)
-                InfoRow("序列号", session.deviceSerial)
-                InfoRow("身份", session.identity)
-                InfoRow("链路", session.route)
-                address?.let { InfoRow("Tailcat 地址", maskedAddress(it)) }
-                profile?.preferredPort?.let { InfoRow("本地入口", "127.0.0.1:$it") }
-            }
+        SectionHeader("文件传输")
+        GroupCard {
+            TextField(
+                value = remotePath,
+                onValueChange = { remotePath = it },
+                label = "远端路径",
+                enabled = online,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = Dimens.CardInner, vertical = Dimens.RowVertical),
+            )
+            SettingRow(
+                title = "上传文件",
+                summary = "放进上面的远端目录",
+                icon = ImageVector.vectorResource(TailcatIcons.Upload),
+                enabled = online && !busyTransfer,
+                trailing = RowTrailing.Action(if (busyTransfer) "传输中…" else "选择") {
+                    pickUpload.launch(arrayOf("*/*"))
+                },
+            )
+            SettingRow(
+                title = "上传目录",
+                summary = "整个目录先镜像再推走（上限 2000 个文件）",
+                icon = ImageVector.vectorResource(TailcatIcons.Upload),
+                trailing = RowTrailing.Chevron,
+                enabled = online && !busyTransfer,
+                onClick = { pickUploadTree.launch(null) },
+            )
+            SettingRow(
+                title = "下载",
+                summary = "远端路径要指到具体文件",
+                icon = ImageVector.vectorResource(TailcatIcons.Download),
+                trailing = RowTrailing.Chevron,
+                enabled = online && !busyTransfer && remotePath.trim().isNotEmpty(),
+                onClick = {
+                    // 远端路径对下载来说必须指到一个文件，用最后一段当默认文件名
+                    pickDownload.launch(remotePath.trim().substringAfterLast('/').ifEmpty { "download.bin" })
+                },
+            )
         }
 
-        // Shell 窗口：命令输入与**所有**本机任务（装包 / 上传 / 下载 / shell）的输出
-        // 合并成一份连续的终端式日志，不再分散在「任务」列表里逐条展开
-        Card(modifier = Modifier.fillMaxWidth()) {
-            Column(
-                Modifier.fillMaxWidth().padding(vertical = 10.dp),
-                verticalArrangement = Arrangement.spacedBy(10.dp),
-            ) {
-                SmallTitle("ADB Shell")
-                Text(
-                    "打开 Shell 窗口：敲的命令，以及装包 / 上传 / 下载的输出，" +
-                        "都按先后顺序流进同一份日志。",
-                    style = styles.footnote2,
-                    color = colors.onSurfaceVariantSummary,
-                )
-                Button(enabled = online, onClick = onOpenConsole) { Text("打开 Shell 窗口") }
-            }
-        }
-
-        Card(modifier = Modifier.fillMaxWidth()) {
-            Column(
-                Modifier.fillMaxWidth().padding(vertical = 10.dp),
-                verticalArrangement = Arrangement.spacedBy(10.dp),
-            ) {
-                SmallTitle("安装 APK")
-                Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                    Button(
-                        enabled = online && !busyInstalling,
-                        onClick = {
-                            // 用 */* 而不是 APK 的 MIME：不少文件管理器把 apk 标成
-                            // application/octet-stream，按 APK MIME 过滤会让它们整个灰掉。
-                            pickApk.launch(arrayOf("*/*"))
-                        },
-                    ) { Text(if (busyInstalling) "准备中…" else "选择 APK") }
-                }
-                fileError?.let { Text(it, style = styles.footnote1, color = colors.error) }
-                if (!online) {
-                    Text(
-                        "先连上设备才能装包。",
-                        style = styles.footnote2,
-                        color = colors.onSurfaceVariantSummary,
-                    )
-                }
-            }
-        }
-
-        Card(modifier = Modifier.fillMaxWidth()) {
-            Column(
-                Modifier.fillMaxWidth().padding(vertical = 10.dp),
-                verticalArrangement = Arrangement.spacedBy(10.dp),
-            ) {
-                SmallTitle("文件传输")
-                TextField(
-                    value = remotePath,
-                    onValueChange = { remotePath = it },
-                    label = "远端路径",
-                    enabled = online,
-                )
-                Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                    Button(
-                        enabled = online && !busyTransfer,
-                        onClick = { pickUpload.launch(arrayOf("*/*")) },
-                    ) { Text(if (busyTransfer) "传输中…" else "上传文件") }
-                    Button(
-                        enabled = online && !busyTransfer,
-                        onClick = { pickUploadTree.launch(null) },
-                    ) { Text("上传目录") }
-                    Button(
-                        enabled = online && !busyTransfer && remotePath.trim().isNotEmpty(),
-                        onClick = {
-                            // 远端路径对下载来说必须指到一个文件，用最后一段当默认文件名
-                            pickDownload.launch(remotePath.trim().substringAfterLast('/').ifEmpty { "download.bin" })
-                        },
-                    ) { Text("下载") }
-                }
-                // 这是 Compose 的 Text，不解析 markdown —— 别写 **加粗**，会原样显示出来
-                Text(
-                    "上传：把文件或整个目录放进这个目录，例如 /sdcard/Download/。\n" +
-                        "上传目录会先在本地镜像一份再推走，大目录会多占一份缓存空间。\n" +
-                        "下载：这里要填到具体文件，例如 /sdcard/Download/a.txt。",
-                    style = styles.footnote2,
-                    color = colors.onSurfaceVariantSummary,
-                )
-                fileError?.let { Text(it, style = styles.footnote1, color = colors.error) }
-            }
-        }
-
-        // 「本机任务」区块已去掉：任务的输出现在全部流进 Shell 窗口，摆在详情页这份是重复的。
-        // 要取消运行中的任务，去设备列表页的「任务」区块（那是跨设备的全局视图）。
         if (session.logs.isNotEmpty()) {
-            HorizontalDivider()
-            SmallTitle("日志")
-            Card(modifier = Modifier.fillMaxWidth()) {
+            SectionHeader("日志")
+            GroupCard {
                 Column(
-                    Modifier.fillMaxWidth().heightIn(max = 320.dp).verticalScroll(rememberScrollState()),
+                    Modifier
+                        .fillMaxWidth()
+                        .heightIn(max = 320.dp)
+                        .verticalScroll(rememberScrollState())
+                        .padding(Dimens.CardInner),
                 ) {
                     session.logs.takeLast(200).forEach { line ->
                         Text(
@@ -392,11 +368,20 @@ fun DeviceDetailScreen(
             }
         }
 
-        HorizontalDivider()
-        Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+        SectionHeader("设备管理")
+        GroupCard {
+            SettingRow(
+                title = if (temporary) "编辑临时设备" else "编辑设备",
+                summary = "改配置前要先断开连接",
+                trailing = RowTrailing.Chevron,
+                enabled = session.serial == null && !session.state.isBusy,
+                onClick = { editing = !editing },
+            )
             if (temporary) {
-                TextButton(
-                    text = "保存到我的设备",
+                SettingRow(
+                    title = "保存到我的设备",
+                    summary = "把临时设备写进配置，名称留空时用型号兜底",
+                    trailing = RowTrailing.Chevron,
                     onClick = {
                         // 临时设备允许没有名字，但转正后名称是必填的（core 的 validated()）。
                         // 详情页上没有改名的地方，所以这里用型号 / 序列号兜一个，别让用户撞上
@@ -412,8 +397,11 @@ fun DeviceDetailScreen(
                     },
                 )
             }
-            TextButton(
-                text = "删除设备",
+            SettingRow(
+                title = "删除设备",
+                summary = if (temporary) "同时结束这次临时会话" else "只从本机删除，不影响对方",
+                titleColor = colors.error,
+                trailing = RowTrailing.Chevron,
                 onClick = {
                     scope.launch {
                         runCatching { manager.removeDevice(deviceId) }.onSuccess { onBack() }
@@ -422,22 +410,69 @@ fun DeviceDetailScreen(
                 },
             )
         }
+
+        AnimatedVisibility(
+            visible = editing,
+            enter = fadeIn(tween(TRANSITION_MS)) + expandVertically(tween(TRANSITION_MS)),
+            exit = fadeOut(tween(TRANSITION_MS)) + shrinkVertically(tween(TRANSITION_MS)),
+        ) {
+            Column(Modifier.padding(top = Dimens.CardGap)) {
+                DeviceEditorCard(
+                    manager = manager,
+                    profile = profile,
+                    temporary = temporary,
+                    onDone = {
+                        editing = false
+                        // 概览里的地址读的是快照，改完得重新取一次
+                        scope.launch {
+                            address = runCatching { manager.addressForEditing(deviceId) }.getOrNull()
+                        }
+                    },
+                )
+            }
+        }
     }
 }
 
+/**
+ * 详情页顶部的状态卡。
+ *
+ * 在线时用强调容器色 —— 与首页的服务端卡同一套语义：**正在生效的东西才上色**。
+ */
 @Composable
-private fun InfoRow(label: String, value: String) {
+private fun DetailStatusCard(
+    state: ConnectionState,
+    serial: String?,
+    online: Boolean,
+    onToggle: () -> Unit,
+) {
     val colors = MiuixTheme.colorScheme
     val styles = MiuixTheme.textStyles
-    Row(Modifier.fillMaxWidth().padding(vertical = 2.dp)) {
-        Text(label, style = styles.footnote1, color = colors.onSurfaceVariantSummary)
-        Spacer(Modifier.width(12.dp))
-        Text(
-            value,
-            style = styles.footnote1,
-            color = colors.onSurface,
-            modifier = Modifier.weight(1f),
-        )
+    val background = if (online) colors.surfaceContainerHighest else colors.surface
+    val strong = if (online) colors.onSurfaceContainerHighest else colors.onSurface
+    val weak = if (online) colors.onSurfaceContainerHighest.copy(alpha = 0.72f) else colors.onSurfaceVariantSummary
+
+    Row(
+        Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(Dimens.CardRadius))
+            .background(background)
+            .padding(Dimens.CardInner),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Column(Modifier.weight(1f)) {
+            Text(state.label, style = styles.body1, color = strong)
+            Text(serial ?: "尚未建立 ADB 连接", style = styles.footnote2, color = weak)
+        }
+        Button(onClick = onToggle, enabled = !state.isBusy) {
+            Text(
+                when {
+                    state.isBusy -> "请稍候…"
+                    serial == null -> "连接"
+                    else -> "断开"
+                },
+            )
+        }
     }
 }
 
