@@ -89,6 +89,9 @@ import cc.coauto.tailcat.shell.ui.SectionHeader
 import cc.coauto.tailcat.shell.ui.SettingRow
 import cc.coauto.tailcat.shell.ui.TailcatIcons
 import cc.coauto.tailcat.shell.ui.ExpandingBlock
+import androidx.compose.runtime.rememberCoroutineScope
+import cc.coauto.tailcat.shell.platform.AdbTcpMode
+import kotlinx.coroutines.launch
 
 /** 统一的过渡时长，避免各处动画节奏不一致。 */
 private const val TRANSITION_MS = 320
@@ -146,6 +149,13 @@ internal fun ShellScreen(context: Context) {
     var hasSavedKey by remember { mutableStateOf(TailcatServer.hasPersistentKey(context)) }
     var showLog by remember { mutableStateOf(false) }
     var notice by remember { mutableStateOf<String?>(null) }
+
+    // 让 adbd 在目标端口上听 TCP 需要跑命令，这里借管理端那套 runner 与自带的 adb。
+    // ManagerModel 是进程级单例（AppRoot 已经建好），这里只是取一下。
+    val scope = rememberCoroutineScope()
+    val managerModel = remember(context) { ManagerModel.get(context) }
+    val adbRunner = remember(managerModel) { managerModel.services.createRunner() }
+    val adbPath = remember(managerModel) { managerModel.manager.findTool("adb") }
 
     val permissionLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestPermission(),
@@ -262,8 +272,25 @@ internal fun ShellScreen(context: Context) {
                                 context,
                                 Intent(context, TailcatService::class.java).setAction(TailcatService.ACTION_START),
                             )
+                            // 隧道与「本机端口上有没有人听」是两件事，这里顺手把后者也办了。
+                            // 有 root 直接切 adbd，没有就借无线调试切 —— 用户不需要选。
+                            scope.launch {
+                                notice = describe(
+                                    AdbTcpMode.ensure(context, parsed.first(), adbRunner, adbPath),
+                                    parsed.first(),
+                                )
+                            }
                         }
                     }
+                },
+            )
+            SettingRow(
+                title = "ADB 端口就绪",
+                summary = "端口上没有服务时点一次：有 root 直接切 adbd，没有就借无线调试",
+                icon = ImageVector.vectorResource(TailcatIcons.Terminal),
+                trailing = RowTrailing.Action("试一次") {
+                    val port = Settings.ports(portsText).firstOrNull() ?: PortProbe.ADB_PORT
+                    scope.launch { notice = describe(AdbTcpMode.ensure(context, port, adbRunner, adbPath), port) }
                 },
             )
             SettingRow(
@@ -472,6 +499,14 @@ private fun StatusCard(
 }
 
 /** 状态圆点。「正在启动」时做呼吸动画，静态状态则短暂过渡到目标颜色。 */
+/** 把 [AdbTcpMode] 的结果变成一句人话：成功时不暴露走了哪条路，失败时才说清缺什么。 */
+private fun describe(outcome: AdbTcpMode.Outcome, port: Int): String = when (outcome) {
+    AdbTcpMode.Outcome.AlreadyReady -> "端口 $port 已在监听"
+    AdbTcpMode.Outcome.ViaRoot, AdbTcpMode.Outcome.ViaWireless -> "端口 $port 已就绪"
+    is AdbTcpMode.Outcome.NeedsPairing -> "无线调试端口 ${outcome.port} 已找到，但这个应用还没配对过，需要一次配对"
+    is AdbTcpMode.Outcome.Failed -> outcome.reason
+}
+
 @Composable
 private fun StatusDot(state: ServerState) {
     val colors = MiuixTheme.colorScheme

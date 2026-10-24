@@ -24,6 +24,7 @@ import cc.coauto.tailcat.shell.ui.SectionHeader
 import cc.coauto.tailcat.shell.ui.SettingRow
 import cc.coauto.tailcat.shell.ui.TailcatIcons
 import java.io.File
+import cc.coauto.tailcat.shell.platform.AdbTcpMode
 
 /** 项目主页：fork 自 suyunkai/tailcat-tool，Windows + Android 两端都在这个仓库里。 */
 private const val PROJECT_URL = "github.com/erxm/tailcat-tool"
@@ -95,6 +96,14 @@ internal fun SettingsScreen(
                 icon = ImageVector.vectorResource(TailcatIcons.Refresh),
                 trailing = RowTrailing.Chevron,
                 onClick = onRelocateTools,
+            )
+            // 只读展示：说明这台设备「把 adbd 切到 TCP 模式」会走哪条路。
+            // 用户不需要选 —— 启动服务时按 root → 无线调试 的顺序自动尝试。
+            SettingRow(
+                title = "ADB 端口切换方式",
+                summary = "启动服务时自动使用；无 root 需在开发者选项开启一次「无线调试」",
+                icon = ImageVector.vectorResource(TailcatIcons.Server),
+                trailing = RowTrailing.Value(remember(context) { AdbTcpMode.capability(context) }),
             )
         }
 
