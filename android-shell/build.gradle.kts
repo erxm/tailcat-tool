@@ -553,8 +553,10 @@ android {
         applicationId = "cc.coauto.tailcat.manager"
         minSdk = 26
         targetSdk = 36
-        versionCode = 1
-        versionName = "1.0"
+        // 每次发版必须递增：Android 靠 versionCode 判断能否覆盖升级，
+        // 同一个 versionCode 配不同内容会让「有新版本」的提示永远不出现。
+        versionCode = 2
+        versionName = "1.1.0"
         ndk { abiFilters += "arm64-v8a" }
     }
 
