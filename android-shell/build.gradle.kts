@@ -11,6 +11,10 @@ plugins {
     alias(libs.plugins.androidApplication)
     alias(libs.plugins.kotlinAndroid)
     alias(libs.plugins.composeCompiler)
+    // Shell 窗口的快捷命令要落盘成 JSON。**只加依赖不加插件是不行的**：
+    // 运行时才抛 "Serializer for class 'ShellShortcut' is not found"，而那里正好有
+    // runCatching 兜底 —— 表现成「改了、重启就没了」，一条日志都没有。
+    alias(libs.plugins.kotlinSerialization)
 }
 
 /**
@@ -555,8 +559,8 @@ android {
         targetSdk = 36
         // 每次发版必须递增：Android 靠 versionCode 判断能否覆盖升级，
         // 同一个 versionCode 配不同内容会让「有新版本」的提示永远不出现。
-        versionCode = 2
-        versionName = "1.1.0"
+        versionCode = 3
+        versionName = "1.1.1"
         ndk { abiFilters += "arm64-v8a" }
     }
 

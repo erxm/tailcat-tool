@@ -46,6 +46,9 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.Composable
+import cc.coauto.tailcat.shell.platform.AppPreferences
+import androidx.compose.runtime.SideEffect
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -116,13 +119,17 @@ class MainActivity : ComponentActivity() {
         // 显式声明（targetSdk 35+ 本来就是强制 edge-to-edge 的），
         // 配合下面根布局的 safeDrawing insets 才不会让内容钻到状态栏/导航栏底下。
         enableEdgeToEdge()
-        // 背景交给界面自己画，所以状态栏图标颜色要跟着深浅色走，否则浅色下会看不清
-        val night = (resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK) ==
-            Configuration.UI_MODE_NIGHT_YES
-        WindowCompat.getInsetsController(window, window.decorView)
-            .isAppearanceLightStatusBars = !night
+        // 偏好（主题 / 终端字号 / 画质 / 自动端口）要在任何界面读到它之前就绪
+        AppPreferences.attach(this)
         setContent {
-            TailcatTheme {
+            // 深浅色由「偏好 + 系统」一起决定；状态栏图标颜色必须跟最终结果一致，
+            // 否则应用内切成深色而系统是浅色时，状态栏会变成白底白字。
+            val dark = AppPreferences.isDark(isSystemInDarkTheme())
+            SideEffect {
+                WindowCompat.getInsetsController(window, window.decorView)
+                    .isAppearanceLightStatusBars = !dark
+            }
+            TailcatTheme(dark = dark) {
                 TailcatApp(this)
             }
         }
@@ -274,11 +281,13 @@ internal fun ShellScreen(context: Context) {
                             )
                             // 隧道与「本机端口上有没有人听」是两件事，这里顺手把后者也办了。
                             // 有 root 直接切 adbd，没有就借无线调试切 —— 用户不需要选。
-                            scope.launch {
-                                notice = describe(
-                                    AdbTcpMode.ensure(context, parsed.first(), adbRunner, adbPath),
-                                    parsed.first(),
-                                )
+                            if (AppPreferences.value.autoAdbPort) {
+                                scope.launch {
+                                    notice = describe(
+                                        AdbTcpMode.ensure(context, parsed.first(), adbRunner, adbPath),
+                                        parsed.first(),
+                                    )
+                                }
                             }
                         }
                     }

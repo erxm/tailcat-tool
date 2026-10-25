@@ -17,6 +17,9 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.vectorResource
 import cc.coauto.tailcat.shell.screen.ScrcpyServer
 import cc.coauto.tailcat.shell.ui.BigTitleBar
+import cc.coauto.tailcat.shell.platform.AppPreferences
+import cc.coauto.tailcat.shell.platform.MirrorQuality
+import cc.coauto.tailcat.shell.ui.ChoiceRow
 import cc.coauto.tailcat.shell.ui.Dimens
 import cc.coauto.tailcat.shell.ui.GroupCard
 import cc.coauto.tailcat.shell.ui.RowTrailing
@@ -63,6 +66,54 @@ internal fun SettingsScreen(
             .padding(start = Dimens.PagePadding, end = Dimens.PagePadding, bottom = Dimens.CardGap * 2),
     ) {
         BigTitleBar("设置")
+
+        SectionHeader("外观")
+        GroupCard {
+            ChoiceRow(
+                title = "主题",
+                summary = "深色/浅色由这里决定，跟随系统时看手机设置",
+                options = listOf("跟随系统", "浅色", "深色"),
+                selectedIndex = AppPreferences.value.themeMode,
+                onSelect = { mode -> AppPreferences.update { it.copy(themeMode = mode) } },
+            )
+            ChoiceRow(
+                title = "终端字号",
+                summary = "Shell 窗口的等宽字号；改完下一场会话按新字号算行列",
+                options = listOf("小", "标准", "大"),
+                selectedIndex = when (AppPreferences.value.terminalFontSize) {
+                    11 -> 0
+                    14 -> 2
+                    else -> 1
+                },
+                onSelect = { index ->
+                    val size = listOf(11, 12, 14)[index]
+                    AppPreferences.update { it.copy(terminalFontSize = size) }
+                },
+            )
+        }
+
+        SectionHeader("屏幕控制")
+        GroupCard {
+            ChoiceRow(
+                title = "画质",
+                summary = MirrorQuality.of(AppPreferences.value.mirrorQuality).summary,
+                options = MirrorQuality.entries.map { it.label },
+                selectedIndex = AppPreferences.value.mirrorQuality,
+                onSelect = { index -> AppPreferences.update { it.copy(mirrorQuality = index) } },
+            )
+        }
+
+        SectionHeader("行为")
+        GroupCard {
+            SettingRow(
+                title = "启动服务端时自动让 ADB 端口就绪",
+                summary = "关掉后只跑隧道；需要时去服务端页手动点一次",
+                icon = ImageVector.vectorResource(TailcatIcons.Terminal),
+                trailing = RowTrailing.Toggle(AppPreferences.value.autoAdbPort) { on ->
+                    AppPreferences.update { it.copy(autoAdbPort = on) }
+                },
+            )
+        }
 
         SectionHeader("工具")
         GroupCard {

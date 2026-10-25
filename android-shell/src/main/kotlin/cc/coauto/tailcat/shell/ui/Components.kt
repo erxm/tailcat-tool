@@ -9,6 +9,11 @@ import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
+import androidx.compose.ui.draw.clip
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.PaddingValues
@@ -16,6 +21,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -289,4 +295,81 @@ public fun ExpandingBlock(
         runCatching { requester.bringIntoView() }
     }
     Box(modifier.bringIntoViewRequester(requester)) { content() }
+}
+
+/**
+ * 小号可选「药丸」：快捷命令、终端功能键、设置里的档位选择共用这一套视觉。
+ *
+ * 为什么不用 MIUIX 的 `TextButton`：它自带最小高度与内外边距，想压矮就会把文字裁掉
+ * （实测压到 34dp 后文字只剩约 8dp 高）。这里高度由内容决定，字号统一 `footnote1`。
+ */
+@Composable
+public fun Chip(
+    text: String,
+    modifier: Modifier = Modifier,
+    selected: Boolean = false,
+    enabled: Boolean = true,
+    onClick: () -> Unit,
+) {
+    val colors = MiuixTheme.colorScheme
+    val background = if (selected) colors.surfaceContainerHighest else colors.surfaceContainer
+    val contentColor = when {
+        !enabled -> colors.disabledOnSurface
+        selected -> colors.onSurfaceContainerHighest
+        else -> colors.onSurfaceContainer
+    }
+    Box(
+        modifier
+            .clip(RoundedCornerShape(8.dp))
+            .background(background)
+            .clickable(enabled = enabled, onClick = onClick)
+            .padding(horizontal = 10.dp, vertical = 6.dp),
+    ) {
+        Text(text = text, style = MiuixTheme.textStyles.footnote1, color = contentColor, maxLines = 1)
+    }
+}
+
+/**
+ * 档位选择行：标题 + 说明 + 一排 [Chip]。
+ *
+ * 选项横排会超出屏幕，所以用横向滚动而不是压缩字号 —— 说明文字在上、选项在下，
+ * 比「右边挤三个小按钮」耐看，也不会因为标题长就把按钮挤掉。
+ */
+@Composable
+public fun ChoiceRow(
+    title: String,
+    options: List<String>,
+    selectedIndex: Int,
+    onSelect: (Int) -> Unit,
+    modifier: Modifier = Modifier,
+    summary: String? = null,
+) {
+    val colors = MiuixTheme.colorScheme
+    val styles = MiuixTheme.textStyles
+    Column(
+        modifier.fillMaxWidth().padding(
+            start = Dimens.CardInner,
+            end = Dimens.CardInner,
+            top = Dimens.RowVertical,
+            bottom = Dimens.RowVertical,
+        ),
+    ) {
+        Text(title, style = styles.body1, color = colors.onSurface)
+        if (summary != null) {
+            Text(summary, style = styles.footnote2, color = colors.onSurfaceVariantSummary)
+        }
+        Spacer(Modifier.height(8.dp))
+        Row(
+            Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
+            horizontalArrangement = Arrangement.spacedBy(6.dp),
+        ) {
+            options.forEachIndexed { index, label ->
+                Chip(
+                    text = label,
+                    selected = index == selectedIndex,
+                    onClick = { onSelect(index) },
+                )
+            }
+        }
+    }
 }

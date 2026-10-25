@@ -36,22 +36,8 @@ class AndroidProcessSpawner(private val context: Context) : ProcessSpawner {
 
     private val scope = CoroutineScope(callbackDispatcher + SupervisorJob())
 
-    private val baseEnvironment: Map<String, String> by lazy {
-        val files = context.filesDir.apply { mkdirs() }
-        val cache = context.cacheDir.apply { mkdirs() }
-        val xdgConfig = File(files, "xdg-config").apply { mkdirs() }
-        val xdgState = File(files, "xdg-state").apply { mkdirs() }
-        val xdgCache = File(cache, "xdg-cache").apply { mkdirs() }
-        mapOf(
-            "HOME" to files.absolutePath,
-            "XDG_CONFIG_HOME" to xdgConfig.absolutePath,
-            "XDG_STATE_HOME" to xdgState.absolutePath,
-            "XDG_CACHE_HOME" to xdgCache.absolutePath,
-            "TMPDIR" to cache.absolutePath,
-            "LD_LIBRARY_PATH" to
-                AdbRuntime.linksDir(context).absolutePath + ":" + SYSTEM_LIB_DIR,
-        )
-    }
+    /** 环境变量与 Shell 窗口共用一份实现，见 [processEnvironment]。 */
+    private val baseEnvironment: Map<String, String> by lazy { processEnvironment(context) }
 
     override fun start(
         command: Command,

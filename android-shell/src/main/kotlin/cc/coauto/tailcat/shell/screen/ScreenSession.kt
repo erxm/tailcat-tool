@@ -1,5 +1,7 @@
 package cc.coauto.tailcat.shell.screen
 
+import cc.coauto.tailcat.shell.platform.AppPreferences
+
 import android.content.Context
 import android.util.Log
 import android.view.Surface
@@ -159,12 +161,19 @@ class ScreenSession(
                 ).requireSuccess()
 
                 _state.value = ScreenState.Starting("启动服务端")
+                // 画质档位在设置页选，改完下一场投屏生效
+                val quality = AppPreferences.mirrorQuality()
                 // ⚠️ 用 start 而不是 run：服务端要一直活着，而 run 带超时会把它掐掉。
                 // 超时给一个极大的值只是防御性的写法，start 本身不理会这个字段。
                 serverProcess = runner.start(
                     adb.shellCommand(
                         deviceSerial,
-                        ScrcpyServer.launchCommand(scid, MAX_SIZE, BIT_RATE, MAX_FPS),
+                        ScrcpyServer.launchCommand(
+                            scid,
+                            quality.maxSize,
+                            quality.bitRate,
+                            quality.maxFps,
+                        ),
                         timeoutMillis = Long.MAX_VALUE,
                     ),
                     onOutput = { Log.d(TAG, "server: ${it.trimEnd()}") },
@@ -464,9 +473,6 @@ class ScreenSession(
 
         /** 排障时打前几十个包的详情就够了；常开会让日志被淹没。 */
         const val DIAGNOSTIC_PACKETS = 30
-        const val MAX_SIZE = 1280
-        const val BIT_RATE = 8_000_000
-        const val MAX_FPS = 30
         const val CONNECT_ATTEMPTS = 10
         const val CONNECT_RETRY_DELAY_MILLIS = 300L
     }
