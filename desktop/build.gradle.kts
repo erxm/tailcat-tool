@@ -70,7 +70,7 @@ compose.desktop {
             // AppImage 是免安装的绿色目录；Exe 是安装包，**需要 WiX 3.x**（见 README）。
             targetFormats(TargetFormat.AppImage, TargetFormat.Exe)
             packageName = "TailcatManager"
-            packageVersion = "1.1.0"
+            packageVersion = "1.1.1"
             // 必须是纯 ASCII：这个值会被 jpackage 写进 MSI，而 WiX 默认按代码页 1252 编码，
             // 中文或全角符号会让 light.exe 直接以 LGHT0311 失败（退出码 311）。
             description = "Tailcat to ADB session manager"

@@ -55,23 +55,38 @@ public fun DialogPanel(
 
 @Composable
 public fun StatusDot(state: ConnectionState, size: Int = 9) {
+    // 颜色统一从主题的 statusColors 取，和 Android 端一致；
+    // 以前这里的 4CAF50 / FF9800 是 Material 调色板，跟这套蓝灰色阶不搭。
+    val status = statusColors
     val color = when (state) {
-        ConnectionState.Online -> Color(0xFF4CAF50)
-        ConnectionState.Unauthorized, ConnectionState.Offline -> Color(0xFFFF9800)
-        ConnectionState.Failed -> Color(0xFFE53935)
-        ConnectionState.Connecting, ConnectionState.Disconnecting -> Color(0xFF2196F3)
-        ConnectionState.Disconnected -> MaterialTheme.colorScheme.outline
+        ConnectionState.Online -> status.running
+        ConnectionState.Unauthorized, ConnectionState.Offline -> status.warning
+        ConnectionState.Failed -> status.error
+        ConnectionState.Connecting, ConnectionState.Disconnecting -> MaterialTheme.colorScheme.primary
+        ConnectionState.Disconnected -> status.idle
     }
     Box(Modifier.size(size.dp).background(color, CircleShape))
 }
 
+/**
+ * 「名称 — 值」行：对应手机端 `SettingRow` 的只读形态。
+ *
+ * 名称用小号灰字、值用正文色：之前两边同字号同色，扫一眼分不出哪边是要复制的值。
+ */
 @Composable
 public fun DetailRow(label: String, value: String) {
-    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.Top) {
+    Row(
+        Modifier.fillMaxWidth()
+            .padding(
+                horizontal = DesktopDimens.CardInner,
+                vertical = 6.dp,
+            ),
+        verticalAlignment = Alignment.Top,
+    ) {
         Text(
             label,
-            modifier = Modifier.width(96.dp),
-            style = MaterialTheme.typography.bodyMedium,
+            modifier = Modifier.width(110.dp),
+            style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
         Text(
@@ -84,14 +99,10 @@ public fun DetailRow(label: String, value: String) {
     }
 }
 
+/** 旧名字，保留是为了不动一堆调用点；实现已统一到 [SectionHeader]。 */
 @Composable
 public fun SectionTitle(text: String) {
-    Text(
-        text,
-        style = MaterialTheme.typography.titleSmall,
-        color = MaterialTheme.colorScheme.onSurfaceVariant,
-        modifier = Modifier.padding(top = 4.dp),
-    )
+    SectionHeader(text)
 }
 
 @Composable
@@ -102,8 +113,9 @@ public fun InfoBlock(title: String, body: String) {
     }
 }
 
+@Composable
 public fun taskColor(state: TaskState, fallback: Color): Color = when (state) {
-    TaskState.Failed -> Color(0xFFE53935)
-    TaskState.Succeeded -> Color(0xFF4CAF50)
+    TaskState.Failed -> statusColors.error
+    TaskState.Succeeded -> statusColors.running
     else -> fallback
 }

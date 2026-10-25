@@ -68,16 +68,11 @@ public fun DeviceDetail(
     var shellCommand by remember { mutableStateOf("") }
     val scope = rememberCoroutineScope()
 
-    Column(Modifier.fillMaxSize().padding(24.dp)) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Column(Modifier.weight(1f)) {
-                Text(profile.name, style = MaterialTheme.typography.headlineSmall)
-                Text(
-                    if (temporary) "临时设备 · 仅本次运行" else "独立连接会话",
-                    style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
+    Column(Modifier.fillMaxSize().padding(DesktopDimens.PagePadding)) {
+        PageTitle(
+            title = profile.name,
+            subtitle = if (temporary) "临时设备 · 仅本次运行" else "独立连接会话",
+        ) {
             if (temporary) {
                 OutlinedButton(onClick = onPromote, enabled = session.state != ConnectionState.Disconnecting) {
                     Text("保存到我的设备")
@@ -180,6 +175,8 @@ private fun OverviewTab(
         Spacer(Modifier.height(16.dp))
         // 这些值（serial、型号、序列号）是排查问题时最常要复制出去的东西，
         // 所以整块包在 SelectionContainer 里，可以像原版一样选中复制。
+        SectionHeader("连接信息")
+        GroupCard {
         SelectionContainer {
         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
             DetailRow("本地入口", session.serial ?: "未分配")
@@ -190,6 +187,7 @@ private fun OverviewTab(
             DetailRow("Android", session.android)
             DetailRow("设备序列号", session.deviceSerial)
             DetailRow("Shell 权限", session.identity)
+        }
         }
         }
 

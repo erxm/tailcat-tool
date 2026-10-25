@@ -1,6 +1,5 @@
 package cc.coauto.tailcat.desktop
 
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -21,6 +20,7 @@ import cc.coauto.tailcat.core.session.SessionManager
 import cc.coauto.tailcat.core.session.SessionManagerDependencies
 import cc.coauto.tailcat.desktop.ui.ManagerCommands
 import cc.coauto.tailcat.desktop.ui.ManagerScreen
+import cc.coauto.tailcat.desktop.ui.TailcatTheme
 import cc.coauto.tailcat.desktop.win.ConsoleHost
 import cc.coauto.tailcat.desktop.win.JsonConfigurationStore
 import cc.coauto.tailcat.desktop.win.NativeDialogs
@@ -136,7 +136,7 @@ private fun tailcatApplication(model: ApplicationModel, demo: Boolean) = applica
                 ) { showWindow() }
             }
         }
-        MaterialTheme {
+        TailcatTheme {
             ManagerScreen(manager = model.manager, demo = demo, commands = commands)
         }
     }
@@ -157,7 +157,7 @@ private fun tailcatApplication(model: ApplicationModel, demo: Boolean) = applica
 
     if (model.startupError != null) {
         Window(onCloseRequest = { requestExit() }, title = "配置读取失败") {
-            MaterialTheme {
+            TailcatTheme {
                 StartupErrorScreen(
                     message = model.startupError.orEmpty(),
                     directory = model.appDirectory,

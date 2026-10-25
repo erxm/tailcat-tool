@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
@@ -180,7 +181,7 @@ public fun ManagerScreen(
             if (notice != null) {
                 HorizontalDivider()
                 Row(
-                    Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 8.dp),
+                    Modifier.fillMaxWidth().padding(horizontal = DesktopDimens.PagePadding, vertical = 8.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     Text(notice.orEmpty(), style = MaterialTheme.typography.bodySmall, modifier = Modifier.weight(1f))
@@ -279,7 +280,7 @@ private fun Toolbar(
     onSettings: () -> Unit,
 ) {
     Row(
-        Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 10.dp),
+        Modifier.fillMaxWidth().padding(horizontal = DesktopDimens.PagePadding, vertical = 10.dp),
         horizontalArrangement = Arrangement.spacedBy(8.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
@@ -357,11 +358,9 @@ private fun Sidebar(
 
 @Composable
 private fun SidebarSection(title: String) {
-    Text(
+    SectionHeader(
         title,
-        Modifier.padding(start = 16.dp, top = 10.dp, bottom = 4.dp),
-        style = MaterialTheme.typography.labelMedium,
-        color = MaterialTheme.colorScheme.onSurfaceVariant,
+        Modifier.padding(top = DesktopDimens.SectionGap, bottom = 2.dp),
     )
 }
 
@@ -481,7 +480,7 @@ private fun ToolHealthPanel(manager: SessionManager) {
     val toolState = tools
 
     Column(Modifier.fillMaxWidth().padding(12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-        Text("工具", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        SectionHeader("工具")
         ToolComponent.entries.forEach { component ->
             ToolHealthRow(
                 label = component.label,
@@ -526,13 +525,22 @@ private fun ToolHealthRow(
     canInstall: Boolean,
     onInstall: () -> Unit,
 ) {
-    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-        Text(if (available) "✓" else "✗", style = MaterialTheme.typography.labelMedium)
+    Row(
+        Modifier.fillMaxWidth().heightIn(min = 32.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        // 状态用主题色表达（与手机端一致），不再靠 ✓/✗ 这种 ASCII 记号
+        val status = statusColors
+        Text(
+            if (available) "✓" else "✗",
+            style = MaterialTheme.typography.bodyMedium,
+            color = if (available) status.running else status.error,
+        )
         Spacer(Modifier.width(6.dp))
-        Text(label, style = MaterialTheme.typography.labelMedium, modifier = Modifier.weight(1f))
+        Text(label, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f))
         when {
-            installing -> Text("安装中…", style = MaterialTheme.typography.labelSmall)
-            !available -> TextButton(onClick = onInstall, enabled = canInstall) { Text("安装") }
+            installing -> Chip("安装中…", onClick = null)
+            !available -> Chip("安装", selected = true, enabled = canInstall, onClick = onInstall)
         }
     }
 }
@@ -571,7 +579,7 @@ private fun EmptyState(
 @Composable
 private fun TaskHistory(manager: SessionManager, tasks: List<cc.coauto.tailcat.core.model.DeviceTask>) {
     var expanded by remember { mutableStateOf<String?>(null) }
-    Column(Modifier.fillMaxWidth().height(180.dp).padding(horizontal = 20.dp, vertical = 10.dp)) {
+    Column(Modifier.fillMaxWidth().height(190.dp).padding(horizontal = DesktopDimens.PagePadding, vertical = 10.dp)) {
         Text("设备任务", style = MaterialTheme.typography.titleSmall)
         Spacer(Modifier.height(6.dp))
         Column(Modifier.verticalScroll(rememberScrollState())) {
