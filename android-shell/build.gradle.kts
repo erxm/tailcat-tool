@@ -559,8 +559,8 @@ android {
         targetSdk = 36
         // 每次发版必须递增：Android 靠 versionCode 判断能否覆盖升级，
         // 同一个 versionCode 配不同内容会让「有新版本」的提示永远不出现。
-        versionCode = 3
-        versionName = "1.1.1"
+        versionCode = 7
+        versionName = "1.1.5"
         ndk { abiFilters += "arm64-v8a" }
     }
 

@@ -128,6 +128,8 @@ public fun SettingRow(
         modifier
             .fillMaxWidth()
             .then(if (onClick != null && enabled) Modifier.clickable(onClick = onClick) else Modifier)
+            // 遥控器方向键导航时要有可见焦点（Android 上 clickable 本身就响应中键/回车）
+            .focusRing(shape = RoundedCornerShape(8.dp))
             .heightIn(min = Dimens.RowMinHeight)
             .padding(horizontal = Dimens.CardInner, vertical = Dimens.RowVertical),
         verticalAlignment = Alignment.CenterVertically,
@@ -323,6 +325,7 @@ public fun Chip(
             .clip(RoundedCornerShape(8.dp))
             .background(background)
             .clickable(enabled = enabled, onClick = onClick)
+            .focusRing(shape = RoundedCornerShape(8.dp))
             .padding(horizontal = 10.dp, vertical = 6.dp),
     ) {
         Text(text = text, style = MiuixTheme.textStyles.footnote1, color = contentColor, maxLines = 1)

@@ -5,6 +5,9 @@ import android.content.pm.PackageManager
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.camera.core.CameraSelector
+import androidx.camera.core.resolutionselector.ResolutionSelector
+import androidx.camera.core.resolutionselector.ResolutionStrategy
+import android.util.Size
 import androidx.camera.core.ImageAnalysis
 import androidx.camera.core.ImageProxy
 import androidx.camera.core.Preview
@@ -140,11 +143,16 @@ private fun CameraPreview(
     val executor = remember { Executors.newSingleThreadExecutor() }
     var provider by remember { mutableStateOf<ProcessCameraProvider?>(null) }
     val decoder = remember { QrFrameDecoder() }
+    // 页面关掉之后才把 CameraProvider 拿回来的情况必须挡住：
+    // 那时候再 bindToLifecycle 就没人 unbind 了，相机会**一直开着**
+    //（用户看到的现象就是"关掉扫码后画面继续闪、还发热"）。
+    var released by remember { mutableStateOf(false) }
     // 把最新的回调塞进 State，避免 analyzer 持有旧闭包
     val latestDecoded = rememberUpdatedState(onDecoded)
 
     DisposableEffect(Unit) {
         onDispose {
+            released = true
             runCatching { provider?.unbindAll() }
             decoder.close()
             executor.shutdown()
@@ -160,14 +168,42 @@ private fun CameraPreview(
                 future.addListener({
                     runCatching {
                         val cameraProvider = future.get()
+                        if (released) {
+                            cameraProvider.unbindAll()
+                            return@runCatching
+                        }
                         provider = cameraProvider
 
-                        val preview = Preview.Builder().build().also {
-                            it.surfaceProvider = surfaceProvider
-                        }
+                        // 预览也压到 720p：这条流是**直接进显示合成**的，缓冲区越大、
+                        // 提交越频繁，显示侧的 DRM 提交失败（闪屏）就越容易出现。
+                        val preview = Preview.Builder()
+                            .setResolutionSelector(
+                                ResolutionSelector.Builder()
+                                    .setResolutionStrategy(
+                                        ResolutionStrategy(
+                                            Size(1280, 720),
+                                            ResolutionStrategy.FALLBACK_RULE_CLOSEST_HIGHER_THEN_LOWER,
+                                        ),
+                                    )
+                                    .build(),
+                            )
+                            .build()
+                            .also { it.surfaceProvider = surfaceProvider }
                         val analysis = ImageAnalysis.Builder()
                             // 只留最新一帧：解码跟不上时丢旧帧，而不是排队把延迟越堆越高
                             .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
+                            // 720p 足够解二维码；默认分辨率常是 1080p/1440p，光每帧拷 Y 平面
+                            // 就是 2~4MB，30fps 下 60~120MB/s 的分配与拷贝，直接表现为卡顿、发热。
+                            .setResolutionSelector(
+                                ResolutionSelector.Builder()
+                                    .setResolutionStrategy(
+                                        ResolutionStrategy(
+                                            Size(1280, 720),
+                                            ResolutionStrategy.FALLBACK_RULE_CLOSEST_HIGHER_THEN_LOWER,
+                                        ),
+                                    )
+                                    .build(),
+                            )
                             .build()
                         analysis.setAnalyzer(executor) { image ->
                             decoder.decode(image)?.let { text -> latestDecoded.value(text) }
@@ -196,12 +232,23 @@ private fun CameraPreview(
 private class QrFrameDecoder {
     private val reader = QRCodeReader()
     private var done = false
+    /** 复用同一块 Y 平面缓冲：每帧 new 一个几 MB 的数组会让 GC 一直忙。 */
+    private var luminance = ByteArray(0)
+    private var lastAttemptAt = 0L
 
     fun decode(image: ImageProxy): String? {
         if (done) {
             image.close()
             return null
         }
+        // zxing 解一张 720p 要几十毫秒，30fps 全跑等于把 CPU 吃满。
+        // 每 120ms 试一次，扫码手感几乎无差别，占用降到 1/4。
+        val now = System.nanoTime()
+        if (now - lastAttemptAt < 120_000_000L) {
+            image.close()
+            return null
+        }
+        lastAttemptAt = now
         return try {
             val plane = image.planes[0]
             val rowStride = plane.rowStride
@@ -212,8 +259,10 @@ private class QrFrameDecoder {
             // ⚠️ 这里**必须**按 rowStride 而不是 width 来构造：相机的行宽通常是 2 的幂
             // 或对齐到 16/32 的倍数，直接按 width 切会把每一行的数据错位，表现是
             // 「图明明很清晰，就是扫不出来」。
-            val bytes = ByteArray(buffer.remaining())
-            buffer.get(bytes)
+            val needed = rowStride * image.height
+            if (luminance.size < needed) luminance = ByteArray(needed)
+            val bytes = luminance
+            buffer.get(bytes, 0, minOf(buffer.remaining(), needed))
             val source = PlanarYUVLuminanceSource(
                 bytes, rowStride, image.height,
                 0, 0, image.width, image.height,

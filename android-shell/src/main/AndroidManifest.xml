@@ -15,6 +15,15 @@
         android:name="android.hardware.camera"
         android:required="false" />
 
+    <!-- 电视 / 机顶盒：没有触屏、没有 Play 钱包这类东西。声明成非必需，
+         否则电视的启动器会把它当成"手机应用"过滤掉。 -->
+    <uses-feature
+        android:name="android.hardware.touchscreen"
+        android:required="false" />
+    <uses-feature
+        android:name="android.software.leanback"
+        android:required="false" />
+
     <!-- NoActionBar：MIUI 风格里没有系统标题栏，界面的层级由内容自己表达。
          留着它会和界面内的标题重复，还白占 56dp 高度。 -->
     <application
@@ -30,6 +39,8 @@
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
+                <!-- 让电视的启动器也能列出这个应用（遥控器只能从启动器里进） -->
+                <category android:name="android.intent.category.LEANBACK_LAUNCHER" />
             </intent-filter>
         </activity>
 
