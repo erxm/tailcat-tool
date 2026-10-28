@@ -478,6 +478,22 @@ PTS 的 61 位掩码、session packet 的宽高、SPS/PPS 切分，以及触摸�
 
 ---
 
+## 发版前自检（Windows 打包）
+
+```bash
+./gradlew :desktop:packageReleaseAppImage
+python desktop/tools/checkBundle.py      # 应输出「异常 0 个」
+```
+
+为什么要这一步：Compose Desktop 的 **release 变体默认会对整包做程序压缩（R8/ProGuard）**，
+它把每个依赖 jar 重写、只保留"可达"的类。普通代码没事，但**按名字与原生库绑定**的库会被裁坏 ——
+JNA 就中过招：`com.sun.jna.Native.dispose` 被删，运行时报
+`Could not initialize class com.sun.jna.Native` / `Can't obtain static method dispose`，
+用户机器上连一次设备都连不上，而开发机 `gradlew run` 完全正常。
+
+现在 `desktop/build.gradle.kts` 里 `buildTypes.release.proguard.isEnabled = false`（几十 MB 体积
+换"不会被莫名裁坏"）。真要重新开启压缩，必须给反射/JNI 依赖补 keep 规则，并逐项真机验证。
+
 ## 已知缺口
 
 - **崩溃 / 强杀后的孤儿进程**：三端情况并不相同。
@@ -497,7 +513,20 @@ PTS 的 61 位掩码、session packet 的宽高、SPS/PPS 切分，以及触摸�
   - **Android 端 scrcpy 服务端是另一回事**：它跑在**被控设备**上，本机 cgroup 管不到它。
     目前靠 `ScreenSession` 收尾时按 scid `pkill`；应用被强杀时它会留在被控端直到下次连接。
 - **Android 端没有手动「导入地址簿」入口**，只在首启静默导入一次。
+- **Android 扫码与某些厂商机型的显示管线**（已按"厂商残留状态"处理，不在应用侧继续追）：
+  部分高通机型（实测 mix8 / nezha，HyperOS 3）在**任何**相机应用运行时会刷出
+  `qdgralloc: Datagram: invalid gralloc dataspace - 134217986` 与
+  `SDM: drmModeAtomicCommit failed with error 22 (EINVAL). crtc=206`，
+  表面现象就是闪屏。对照实验：**系统相机同样会触发**（10 秒 118 条 + 19 次提交失败），
+  所以这不是本应用的缺陷。更麻烦的是关闭相机后管线可能停在坏状态，继续闪。
+  - 应用侧只做两件事：**少触发**（1.1.5 起分析流/预览流都压到 720p、解码每 120ms 一次、
+    并且堵住"页面已关才拿到 CameraProvider 又 bind 上去"的竞态 —— 那个竞态会让相机常开）
+    和**提供替代路径**（手动粘贴 tc 地址、导入地址簿都不碰相机）。
+  - **恢复办法**（按成本排序）：① 关屏再开（电源键一次，通常就够，SF 会重建图层）；
+    ② 仍不行则重启手机。这两个都不需要 root；`setprop ctl.restart surfaceflinger`
+    这类需要 root，不在支持范围内。
 - **三端都没有主题切换与多语言**，界面字符串硬编码中文。
+
 
 ---
 
