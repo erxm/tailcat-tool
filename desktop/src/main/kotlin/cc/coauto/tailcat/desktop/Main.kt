@@ -22,6 +22,7 @@ import cc.coauto.tailcat.desktop.ui.ManagerCommands
 import cc.coauto.tailcat.desktop.ui.ManagerScreen
 import cc.coauto.tailcat.desktop.ui.TailcatTheme
 import cc.coauto.tailcat.desktop.win.ConsoleHost
+import cc.coauto.tailcat.desktop.win.JnaEnvironment
 import cc.coauto.tailcat.desktop.win.JsonConfigurationStore
 import cc.coauto.tailcat.desktop.win.NativeDialogs
 import cc.coauto.tailcat.desktop.win.SingleInstance
@@ -38,6 +39,9 @@ private const val WINDOW_TITLE = "Tailcat Manager"
 private const val ACTIVATION_POLL_MILLIS = 500L
 
 public fun main(args: Array<String>) {
+    // 最早一步：把 JNA 的 DLL 解压目录从 %TEMP% 挪到应用自己的目录。
+    // 有用户报过 `Could not initialize class com.sun.jna.Native`，几乎都是那里被拦。
+    JnaEnvironment.prepare()
     // 必须在任何子进程启动之前：给本进程一个隐藏控制台，否则每调用一次 adb 都会闪一次黑框。
     ConsoleHost.attachHiddenConsole()
     NativeDialogs.applySystemLookAndFeel()

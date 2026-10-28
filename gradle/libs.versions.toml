@@ -5,7 +5,7 @@ agp = "8.13.2"
 coroutines = "1.11.0"
 serialization = "1.11.0"
 immutable = "0.5.2"
-jna = "5.19.1"
+jna = "5.18.0"
 # 注意：Compose 1.12.x 起要求 compileSdk 37，而本机只装了 platform 36。
 # 这个 BOM 对应 Compose 1.10.3 —— 正好是 MIUIX 0.8.8 依赖的版本。
 composeBom = "2026.02.00"

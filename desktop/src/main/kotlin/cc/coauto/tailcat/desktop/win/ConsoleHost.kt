@@ -28,8 +28,12 @@ public object ConsoleHost {
 
     private const val SW_HIDE = 0
 
-    private val kernel32: Kernel32Console by lazy {
-        Native.load("kernel32", Kernel32Console::class.java)
+    // 加载失败（典型：JNA 的 jnidispatch.dll 解压被拦）就整块降级：
+    // 后果只是可能闪一下黑框，不该让整个应用起不来。
+    private val kernel32: Kernel32Console? by lazy {
+        runCatching { Native.load("kernel32", Kernel32Console::class.java) }
+            .onFailure { JnaEnvironment.record("ConsoleHost", it) }
+            .getOrNull()
     }
 
     /** 隐藏失败时的重试次数与间隔。最坏情况拖慢启动 0.4 秒，比留一个黑框在屏幕上强。 */
@@ -47,8 +51,9 @@ public object ConsoleHost {
      * @return 是否本次真的分配了控制台。
      */
     public fun attachHiddenConsole(): Boolean {
+        val api = kernel32 ?: return false
         return try {
-            val allocated = kernel32.GetConsoleWindow() == null && kernel32.AllocConsole() != 0
+            val allocated = api.GetConsoleWindow() == null && api.AllocConsole() != 0
             hideConsoleWindow()
             allocated
         } catch (t: Throwable) {
@@ -64,8 +69,9 @@ public object ConsoleHost {
      * 只查一次的话隐藏就被整个跳过了。每次藏完复查可见性，没藏住就再藏一次。
      */
     private fun hideConsoleWindow() {
+        val api = kernel32 ?: return
         repeat(HIDE_ATTEMPTS) { attempt ->
-            val window = kernel32.GetConsoleWindow()
+            val window = api.GetConsoleWindow()
             if (window != null) {
                 val hwnd = WinDef.HWND(window)
                 User32.INSTANCE.ShowWindow(hwnd, SW_HIDE)

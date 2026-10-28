@@ -149,7 +149,12 @@ internal class JobHandle private constructor(private val handle: Pointer) {
 public object ProcessJob {
 
     private val job: JobHandle? by lazy {
-        val created = JobHandle.create()
+        // JNA 不可用时 JobHandle.create() 会抛 ExceptionInInitializerError，
+        // 以前这一下会让**每一次**起进程都失败（用户看到的就是那句
+        // "Could not initialize class com.sun.jna.Native"）。现在只丢兜底，不影响功能。
+        val created = runCatching { JobHandle.create() }
+            .onFailure { JnaEnvironment.record("ProcessJob.create", it) }
+            .getOrNull()
         if (created == null) {
             // 只报一次，且不抛：拿不到 Job 只是少了兜底，不该拦着应用启动。
             System.err.println("[tailcat] 无法创建 Job Object，强杀后的子进程将不会被自动回收")
@@ -159,6 +164,7 @@ public object ProcessJob {
 
     /** 尽力而为：失败不抛异常，只说明这个子进程失去了强杀兜底。 */
     public fun assign(pid: Long) {
-        job?.assign(pid)
+        runCatching { job?.assign(pid) }
+            .onFailure { JnaEnvironment.record("ProcessJob.assign", it) }
     }
 }

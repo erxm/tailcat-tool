@@ -66,11 +66,27 @@ compose.desktop {
          */
         jvmArgs += listOf("-Dskiko.rendering.laf.global=false")
 
+        /*
+         * release 变体默认会跑整程序压缩（R8/ProGuard）：把每个依赖 jar 重写，只保留"可达"的类。
+         * 对普通代码没问题，但对**按名字与原生库绑定**的库是致命的 ——
+         * 实测 JNA 的 `Native.dispose` 被裁掉，运行时报
+         * `Can't obtain static method dispose from class com.sun.jna.Native`
+         *（我们自己机器和用户机器上都复现）。Skiko 的 DLL 因为有显式资源规则没中招，JNA 没有。
+         *
+         * 这里直接关掉压缩：桌面应用几十 MB 的体积换"不会莫名其妙裁坏反射/JNI 契约"，值得。
+         * 真要开，必须配 keep 规则（-keep class com.sun.jna.** { *; } 之类）并逐项验证。
+         */
+        buildTypes.release {
+            proguard {
+                isEnabled.set(false)
+            }
+        }
+
         nativeDistributions {
             // AppImage 是免安装的绿色目录；Exe 是安装包，**需要 WiX 3.x**（见 README）。
             targetFormats(TargetFormat.AppImage, TargetFormat.Exe)
             packageName = "TailcatManager"
-            packageVersion = "1.1.1"
+            packageVersion = "1.1.5"
             // 必须是纯 ASCII：这个值会被 jpackage 写进 MSI，而 WiX 默认按代码页 1252 编码，
             // 中文或全角符号会让 light.exe 直接以 LGHT0311 失败（退出码 311）。
             description = "Tailcat to ADB session manager"
