@@ -129,7 +129,7 @@ compose.desktop {
                  * RemoveExistingProducts 会先去找同 upgradeUuid 的旧产品并移除它，于是新包也装不上。
                  *
                  * 换新值 = 断开与坏线的关系，1.1.6 起可以正常装/卸/升级。代价是 1.1.5 及更早的用户
-                 * 升级后会多出一条旧记录，用 desktop/tools/cleanup-1.1.1.ps1 清掉。
+                 * 升级后会多出一条旧记录，用 desktop/tools/cleanup-old-versions.ps1 清掉。
                  * ⚠️ 从这个值起不要再改，否则 1.1.6+ 内部又会变成两份应用。
                  */
                 upgradeUuid = "7C3D9A54-1B62-4E8F-9E3A-5D2F6B8C41A7"

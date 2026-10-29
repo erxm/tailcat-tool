@@ -82,7 +82,8 @@ debug 包的 applicationId 带 `.debug` 后缀（`cc.coauto.tailcat.manager.debu
 `run-as <包名> <命令>` 以应用自己的 uid 执行操作（例如对应用进程单独发 `SIGKILL`，
 release 包不是 debuggable，`run-as` 会直接拒绝）。
 
-打包产物：`desktop/build/compose/binaries/main/app/TailcatManager/TailcatManager.exe`
+打包产物：`<buildDir>/compose/binaries/main-release/app/TailcatManager/TailcatManager.exe`
+（本项目路径含中文时 `<buildDir>` 是 `%LOCALAPPDATA%\TailcatManager-build	ailcat-tool\desktop`）。
 
 **Android 发布签名**：密钥**故意放在仓库外**（默认 `../tailcat-signing/keystore.properties`，
 可用 `-Ptailcat.signing=<路径>` 或环境变量 `TAILCAT_SIGNING` 指向别处）。`.gitignore` 里也兜底
@@ -100,10 +101,12 @@ release 包不是 debuggable，`run-as` 会直接拒绝）。
 > **本机注意事项**：项目路径含中文（`...\魔改apk\tailcat-tool`），而 JDK 的 `jlink` 经由
 > 响应文件接收非 ASCII 输出路径时会失败（报 `directory already exists`，但该目录并不存在）。
 > Compose 插件固定用 `@argsfile` 调 jlink，无法从 Gradle 侧改掉，因此根 `build.gradle.kts`
-> 在检测到非 ASCII 路径时把构建产物重定向到 `%LOCALAPPDATA%\TailcatManager\build`。
+> 在检测到非 ASCII 路径时把构建产物重定向到 `%LOCALAPPDATA%\TailcatManager-build\`。
 > 源码位置不受影响；把项目挪到纯 ASCII 路径即可恢复默认行为。
+> （**不要**指回 `%LOCALAPPDATA%\TailcatManager`——那是用户数据目录，混在一起的后果见
+> [安装包：三条路径必须分开](#安装包三条路径必须分开)。）
 
-本机没有 WiX，所以只能产出 app-image（免安装目录），无法产出 MSI/exe 安装包。产物未做代码签名，
+打包 exe/msi 需要 WiX 3.x（jpackage 会去找 `light.exe`/`candle.exe`）。产物未做代码签名，
 首次运行会有 SmartScreen「未知发布者」提示。
 
 ---
@@ -498,16 +501,16 @@ JNA 就中过招：`com.sun.jna.Native.dispose` 被删，运行时报
 
 | 内容 | 位置 |
 |---|---|
-| 程序 | `%LOCALAPPDATA%\Programs\TailcatManager`（`installationPath`，jpackage 当相对子路径解释） |
+| 程序 | `%LOCALAPPDATA%\TailcatManagerApp`（`installationPath`；实测只能写单级目录名，见 `desktop/build.gradle.kts`） |
 | 用户数据 | `%LOCALAPPDATA%\TailcatManager`（`configuration.json` / `secrets.dat` / `logs` / `jna`） |
 | Gradle 构建产物 | `%LOCALAPPDATA%\TailcatManager-build\<工程名>`（仅中文路径下才重定向） |
 
 **1.1.1 把它们叠在了一个目录里**，那份 MSI 的文件表因此把构建产物也算了进去；文件一没，
 `msiexec /x` 就在 `InstallValidate` 报 `Error 2318: File does not exist`，产品既卸不掉、也挡住了
 后续所有版本（新版安装器的 `RemoveExistingProducts` 先移除旧产品，失败即整体回滚）。
-1.1.6 起换了 `upgradeUuid` 并装到 `Programs\TailcatManager`，数据目录原地不动——
+1.1.6 起换了 `upgradeUuid` 并装到 `TailcatManagerApp`，数据目录原地不动——
 升级/卸载都碰不到用户数据。装过 1.1.1~1.1.5 的机器清理旧记录用
-`desktop/tools/cleanup-1.1.1.ps1`（需要管理员）。
+`desktop/tools/cleanup-old-versions.ps1`（需要管理员）。
 
 发版前建议跑一次闭环：装 → 启动确认配置还在 → 卸载（程序目录消失、数据目录仍在）→ 再装。
 
