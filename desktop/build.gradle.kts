@@ -86,7 +86,7 @@ compose.desktop {
             // AppImage 是免安装的绿色目录；Exe 是安装包，**需要 WiX 3.x**（见 README）。
             targetFormats(TargetFormat.AppImage, TargetFormat.Exe)
             packageName = "TailcatManager"
-            packageVersion = "1.1.5"
+            packageVersion = "1.1.6"
             // 必须是纯 ASCII：这个值会被 jpackage 写进 MSI，而 WiX 默认按代码页 1252 编码，
             // 中文或全角符号会让 light.exe 直接以 LGHT0311 失败（退出码 311）。
             description = "Tailcat to ADB session manager"
@@ -95,8 +95,22 @@ compose.desktop {
             // jdk.unsupported 是 JNA 需要的（它用了 sun.misc.Unsafe）。
             modules("java.base", "java.desktop", "java.logging", "jdk.crypto.ec", "jdk.unsupported")
 
-            // exe/msi 安装包的升级标识。**必须固定不变**：换了值，新版会被当成另一个应用装成两份。
+            // exe/msi 安装包的升级标识。同一代内**必须固定不变**：换了值，新版会被当成另一个应用装成两份。
+            // 但 1.1.1~1.1.5 这一代必须换掉（见下面 upgradeUuid 的说明），所以这里是 1.1.6 线的起点。
             windows {
+                /*
+                 * 程序装到 %LOCALAPPDATA%\TailcatManagerApp，**不要**落在
+                 * %LOCALAPPDATA%\TailcatManager —— 那是本应用的数据目录（configuration.json /
+                 * secrets.dat / logs / jna）。1.1.1 时三者叠在一个目录里（程序 + 数据 + Gradle 构建产物），
+                 * 结果那份 MSI 的文件表把构建产物也算了进去；文件一没，卸载在 InstallValidate 就报
+                 * `Error 2318: File does not exist`，产品从此既卸不掉也升不上去。
+                 *
+                 * ⚠️ 这里只能写**单级目录名**（MSI 的 Directory Name 不能含分隔符），实测：
+                 *   - "Programs\\TailcatManager" → 反斜杠被吃掉，装成 `%LOCALAPPDATA%\ProgramsTailcatManager`；
+                 *   - "Programs/TailcatManager"   → light.exe 直接失败（退出码 204）。
+                 * 单级名同样是可移植的：per-user 安装以 %LOCALAPPDATA% 为基准，不含用户名、不需要管理员。
+                 */
+                installationPath = "TailcatManagerApp"
                 // exe 的图标（任务栏、开始菜单、桌面快捷方式都取它）。
                 // 不指定的话 jpackage 会塞一个自带的黑白默认图标，跟运行时的窗口/托盘图标对不上。
                 // 图形与 src/main/resources/icons/app-icon.png 一致；
@@ -109,7 +123,16 @@ compose.desktop {
                 shortcut = true
                 menu = true
                 menuGroup = "Tailcat Manager"
-                upgradeUuid = "470F5296-AE6E-4E07-A4DC-D2DB587CC175"
+                /*
+                 * 换过一代升级标识：原来用的是 470F5296-AE6E-4E07-A4DC-D2DB587CC175（1.1.1~1.1.5）。
+                 * 那一代的 MSI 文件表被构建产物污染（见上），**卸载必然 2318**；而新版安装器的
+                 * RemoveExistingProducts 会先去找同 upgradeUuid 的旧产品并移除它，于是新包也装不上。
+                 *
+                 * 换新值 = 断开与坏线的关系，1.1.6 起可以正常装/卸/升级。代价是 1.1.5 及更早的用户
+                 * 升级后会多出一条旧记录，用 desktop/tools/cleanup-1.1.1.ps1 清掉。
+                 * ⚠️ 从这个值起不要再改，否则 1.1.6+ 内部又会变成两份应用。
+                 */
+                upgradeUuid = "7C3D9A54-1B62-4E8F-9E3A-5D2F6B8C41A7"
             }
         }
     }

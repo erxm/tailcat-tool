@@ -31,7 +31,7 @@ HASH_SUFFIX = re.compile(r"^(.*)-[0-9a-f]{20,}\.jar$")
 
 def default_app_dir() -> str | None:
     base = os.environ.get("LOCALAPPDATA") or os.path.expanduser("~")
-    hits = glob.glob(os.path.join(base, "TailcatManager", "build", "**",
+    hits = glob.glob(os.path.join(base, "TailcatManager-build", "**",
                                  "compose", "binaries", "main-release", "app",
                                  "TailcatManager", "app"), recursive=True)
     return hits[0] if hits else None

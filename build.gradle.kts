@@ -22,11 +22,15 @@ plugins {
  *
  * 末尾带上项目目录名：同一台机器上可能有多个副本（比如主项目与 windows 分支各一份），
  * 都在中文路径下的话会撞到同一个目标目录、互相覆盖构建产物。
+ *
+ * ⚠️ 目录名是 `TailcatManager-build`，**不叫** `TailcatManager`：后者是桌面版的用户数据目录
+ * （configuration.json / secrets.dat / logs / jna）。1.1.1 时构建产物曾经就落在那里，和程序、
+ * 数据混了一个目录，结果那份 MSI 的文件表把构建产物也算了进去，卸载报 2318。别再合到一起。
  */
 private val asciiBuildRoot: String? = run {
     if (rootDir.absolutePath.all { it.code < 128 }) return@run null
     val base = System.getenv("LOCALAPPDATA") ?: return@run null
-    "$base\\TailcatManager\\build\\${rootDir.name}"
+    "$base\\TailcatManager-build\\${rootDir.name}"
 }
 
 if (asciiBuildRoot != null) {

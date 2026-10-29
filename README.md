@@ -494,6 +494,23 @@ JNA 就中过招：`com.sun.jna.Native.dispose` 被删，运行时报
 现在 `desktop/build.gradle.kts` 里 `buildTypes.release.proguard.isEnabled = false`（几十 MB 体积
 换"不会被莫名裁坏"）。真要重新开启压缩，必须给反射/JNI 依赖补 keep 规则，并逐项真机验证。
 
+### 安装包：三条路径必须分开
+
+| 内容 | 位置 |
+|---|---|
+| 程序 | `%LOCALAPPDATA%\Programs\TailcatManager`（`installationPath`，jpackage 当相对子路径解释） |
+| 用户数据 | `%LOCALAPPDATA%\TailcatManager`（`configuration.json` / `secrets.dat` / `logs` / `jna`） |
+| Gradle 构建产物 | `%LOCALAPPDATA%\TailcatManager-build\<工程名>`（仅中文路径下才重定向） |
+
+**1.1.1 把它们叠在了一个目录里**，那份 MSI 的文件表因此把构建产物也算了进去；文件一没，
+`msiexec /x` 就在 `InstallValidate` 报 `Error 2318: File does not exist`，产品既卸不掉、也挡住了
+后续所有版本（新版安装器的 `RemoveExistingProducts` 先移除旧产品，失败即整体回滚）。
+1.1.6 起换了 `upgradeUuid` 并装到 `Programs\TailcatManager`，数据目录原地不动——
+升级/卸载都碰不到用户数据。装过 1.1.1~1.1.5 的机器清理旧记录用
+`desktop/tools/cleanup-1.1.1.ps1`（需要管理员）。
+
+发版前建议跑一次闭环：装 → 启动确认配置还在 → 卸载（程序目录消失、数据目录仍在）→ 再装。
+
 ## 已知缺口
 
 - **崩溃 / 强杀后的孤儿进程**：三端情况并不相同。
